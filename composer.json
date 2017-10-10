@@ -16,7 +16,7 @@
    },
    "autoload":{
       "psr-4":{
-         "Contal":"src/"
+         "Contal\\":"src/"
       }
    }
 }
