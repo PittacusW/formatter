@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Batch;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Abstract class to superclass all batch class

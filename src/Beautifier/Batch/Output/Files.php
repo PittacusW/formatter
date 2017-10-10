@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Batch\Output;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * PHP_Beautifier_Batch_Files

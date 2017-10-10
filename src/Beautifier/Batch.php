@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * Definition of  PHP_Beautifier_Batch
@@ -23,11 +26,11 @@
 /**
 * Require PHP_Beautifier_Decorator
 */
-require_once 'Decorator.php';
+require_once __DIR__ . '/Decorator.php';
 /**
 * Require PHP_Beautifier_Batch_Output
 */
-require_once 'Batch/Output.php';
+require_once __DIR__ . '/Batch/Output.php';
 // ArrayNested->off();
 // ArrayNested->on();
 

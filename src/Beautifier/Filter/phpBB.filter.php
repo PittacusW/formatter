@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Filter;
+
 /**
  * Filter the code to make it compatible with phpBB Coding Standards
  *

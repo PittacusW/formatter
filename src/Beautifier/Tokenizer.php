@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /**
  * Interface for Tokenizer
  *

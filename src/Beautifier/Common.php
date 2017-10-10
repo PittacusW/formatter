@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * PHP_Beautifier_Common and PHP_Beautifier_Interface

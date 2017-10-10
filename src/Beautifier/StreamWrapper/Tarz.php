@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\StreamWrapper;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * Custom stream to handle Tar files (compressed and uncompressed)

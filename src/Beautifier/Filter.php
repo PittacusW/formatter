@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /**
  * Definition of class PHP_Beautifier_Filter
  *
@@ -89,7 +92,7 @@ abstract class PHP_Beautifier_Filter
      * @param PHP_Beautifier
      * @param array settings for the Filter
      */
-    public function __construct(PHP_Beautifier $oBeaut, $aSettings = array())
+    public function __construct(Beautifier $oBeaut, $aSettings = array())
     {
         $this->oBeaut = $oBeaut;
         if ($aSettings) {

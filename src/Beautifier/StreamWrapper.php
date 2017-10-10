@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /**
 * Interface for StreamWrappers
 *
@@ -49,5 +52,5 @@ interface PHP_Beautifier_StreamWrapper_Interface {
     function dir_rewinddir();
     function dir_closedir();
 }
-require_once ('StreamWrapper/Tarz.php');
+require_once (__DIR__ . '/StreamWrapper/Tarz.php');
 ?>

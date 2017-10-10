@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Batch\Output;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * Compress all the files to one bz2 file

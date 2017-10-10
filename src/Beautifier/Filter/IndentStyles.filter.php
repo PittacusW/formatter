@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Filter;
+
 /**
  * Filter Indent Styles: Indent the code in k&r, allman, gnu or whitesmiths
  *

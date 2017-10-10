@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Filter;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Default Filter: Handle all the tokens. Uses K & R style

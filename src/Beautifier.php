@@ -31,15 +31,15 @@ include_once 'PEAR/Exception.php';
 /**
  * Require PHP_Beautifier_Filter
  */
-include_once 'Beautifier/Filter.php';
+include_once __DIR__ . '/Beautifier/Filter.php';
 /**
  * Require PHP_Beautifier_Filter_Default
  */
-include_once 'Beautifier/Filter/Default.filter.php';
+include_once __DIR__ . '/Beautifier/Filter/Default.filter.php';
 /**
  * Require PHP_Beautifier_Common
  */
-include_once 'Beautifier/Common.php';
+include_once __DIR__ . '/Beautifier/Common.php';
 /**
  * Require Log
  */
@@ -47,11 +47,11 @@ include_once 'Log.php';
 /**
  * Require Exceptions
  */
-include_once 'Beautifier/Exception.php';
+include_once __DIR__ . '/Beautifier/Exception.php';
 /**
  * Require StreamWrapper
  */
-include_once 'Beautifier/StreamWrapper.php';
+include_once __DIR__ . '/Beautifier/StreamWrapper.php';
 /**
  * PHP_Beautifier
  *
@@ -81,7 +81,7 @@ include_once 'Beautifier/StreamWrapper.php';
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    Release: 0.1.15
  */
-class PHP_Beautifier implements PHP_Beautifier_Interface
+class Beautifier implements PHP_Beautifier_Interface
 {
     // public
     

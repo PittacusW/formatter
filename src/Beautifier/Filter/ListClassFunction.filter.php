@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Filter;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Create a list of functions and classes in the script

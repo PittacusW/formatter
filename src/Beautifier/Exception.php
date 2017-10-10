@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier;
+
 /**
  * Exception.php
  * Definition for Exceptions

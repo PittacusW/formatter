@@ -1,4 +1,7 @@
 <?php
+
+namespace Contal\Beautifier\Filter;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Filter the code to make it compatible with PEAR Coding Standards
