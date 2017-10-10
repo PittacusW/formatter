@@ -2,6 +2,9 @@
 
 namespace Contal\Beautifier\Filter;
 
+use Contal\Beautifier\PHP_Beautifier_Filter;
+
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * New Lines: Add extra new lines after o before specific contents

@@ -2,6 +2,9 @@
 
 namespace Contal\Beautifier\Filter;
 
+use Contal\Beautifier\PHP_Beautifier_Filter;
+
+
 /**
  * Filter the code to make it compatible with phpBB Coding Standards
  *

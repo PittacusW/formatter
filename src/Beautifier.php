@@ -3,6 +3,12 @@
 namespace Contal;
 
 use Contal\Beautifier\PHP_Beautifier_Interface;
+use Contal\Beautifier\PHP_Beautifier_Common;
+use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\StreamWrapper;
+use Contal\Beautifier\Exception_PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter\PHP_Beautifier_Filter_Default;
+
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Contents Php_Beautifier class and make some tests
@@ -504,7 +510,7 @@ class Beautifier implements PHP_Beautifier_Interface
      * @throws  Exception
      */
     private function addFilterFile($sFilter) 
-    {
+    {/*
         $sFilterClass = 'PHP_Beautifier_Filter_' . $sFilter;
         if (class_exists($sFilterClass)) {
             return true;
@@ -516,11 +522,11 @@ class Beautifier implements PHP_Beautifier_Interface
                 if (class_exists($sFilterClass)) {
                     return true;
                 } else {
-                    throw new Exception_PHP_Beautifier_Filter("File '$sFile' exists,but doesn't exists filter '$sFilterClass'");
+                    throw new Exception_PHP_Beautifier_Filter("File '$sFile' exists, but doesn't exists filter '$sFilterClass'");
                 }
             }
         }
-        throw new Exception_PHP_Beautifier_Filter("Doesn't exists filter '$sFilter'");
+        throw new Exception_PHP_Beautifier_Filter("Doesn't exists filter '$sFilter'");*/
     }
     /**
      * Get the names of the loaded filters
@@ -1481,4 +1487,4 @@ class Beautifier implements PHP_Beautifier_Interface
         return $this->isPreviousTokenConstant(T_VARIABLE) or $this->isPreviousTokenConstant(T_OBJECT_OPERATOR) or ($this->isPreviousTokenConstant(T_STRING) and $this->getPreviousTokenConstant(2) == T_OBJECT_OPERATOR) or $this->getMode('double_quote');
     }
 }
-?>
+

@@ -33,7 +33,7 @@ namespace Contal\Beautifier;
  * @license      http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version      Release: 0.1.15
  */
-class Exception_PHP_Beautifier_Filter extends PEAR_Exception
+class Exception_PHP_Beautifier_Filter extends \PEAR_Exception
 {
 }
 ?>
