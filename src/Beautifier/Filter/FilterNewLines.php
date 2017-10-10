@@ -64,8 +64,7 @@ class FilterNewLines extends Filter
         $this->addSettingDefinition('before', 'text', 'List of contents to put new lines before, separated by colons');
         $this->addSettingDefinition('after', 'text', 'List of contents to put new lines after, separated by colons');
         if (!empty($this->aSettings['before'])) {
-            $aBefore = explode(':', str_replace(' ', '', $this->aSettings['before']));
-            foreach($aBefore as $sBefore) {
+            foreach($this->aSettings['before'] as $sBefore) {
                 if (defined($sBefore)) {
                     $this->aBeforeToken[] = constant($sBefore);
                 } else {
@@ -74,8 +73,7 @@ class FilterNewLines extends Filter
             }
         }
         if (!empty($this->aSettings['after'])) {
-            $aAfter = explode(':', str_replace(' ', '', $this->aSettings['after']));
-            foreach($aAfter as $sAfter) {
+            foreach($this->aSettings['after'] as $sAfter) {
                 if (defined($sAfter)) {
                     $this->aAfterToken[] = constant($sAfter);
                 } else {

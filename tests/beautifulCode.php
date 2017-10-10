@@ -1,4 +1,4 @@
-staticfunction<?php
+<?php
 
 namespace App\Models\Admin;
 
@@ -10,9 +10,8 @@ use App\Models\Admin\Controladores;
 use Contal\Formatter;
 
 class Crafter {
-
-	public 
-	static function modelos() {
+	
+	public static function modelos() {
 		return Table::all()->transform(function ($table) {
 			$id = Modelos::where('tabla', $table)->pluck('id')->first();
 			$name = studly_case($table->get('name'));
@@ -22,8 +21,8 @@ class Crafter {
 			return collect(['id' => empty($id) ? null : $id, 'name' => $name, 'table' => $table, 'conexion' => $conexion, 'fillable' => $columns->where('primary', false)->pluck('name') , 'atributos' => empty($id) ? [] : Modelos::find($id)->atributos, 'funciones' => empty($id) ? [] : Modelos::find($id)->funciones, 'exists' => empty($id) ? false : true]);
 		});
 	}
-	public 
-	static function controladores() {
+	
+	public static function controladores() {
 		return Table::all()->transform(function ($table) {
 			$id = Controladores::where('tabla', $table)->pluck('id')->first();
 			$name = studly_case($table->get('name'));
@@ -32,16 +31,16 @@ class Crafter {
 			return collect(['id' => empty($id) ? null : $id, 'name' => $name, 'table' => $table, 'conexion' => $conexion, 'exists' => empty($id) ? false : true, 'atributos' => empty($id) ? [] : Controladores::find($id)->atributos, 'funciones' => empty($id) ? [] : Controladores::find($id)->funciones, 'rutas' => empty($id) ? [] : Controladores::find($id)->rutas, ]);
 		});
 	}
-	public 
-	static function findModelo($id) {
+	
+	public static function findModelo($id) {
 		return self::modelos()->where('id', $id)->first();
 	}
-	public 
-	static function findControlador($id) {
+	
+	public static function findControlador($id) {
 		return self::controladores()->where('id', $id)->first();
 	}
-	public 
-	static function craftModel($table) {
+	
+	public static function craftModel($table) {
 		$connection = config('database.default');
 		$idConexion = Conexiones::where('nombre', $connection)->pluck('id')->first();
 		$namespace = ucfirst($connection);
@@ -97,13 +96,13 @@ class Crafter {
 		Storage::disk("models-{$connection}")->put("{$name}.php", $content);
 		return self::findModelo($id);
 	}
-	public 
-	static function update($id, $data) {
+	
+	public static function update($id, $data) {
 		self::find($id)->update($data);
 		return self::generate($data['table']);
 	}
-	public 
-	static function delete($id) {
+	
+	public static function delete($id) {
 		$name = camel_case($id);
 		Storage::disk('objects')->delete("$name.php");
 		return compact('name');

@@ -12,9 +12,9 @@ class Formatter {
         $b->setIndentNumber(1);
 		$b->EqualsAlign();
         $b->Default();
-        $b->IndentStyles(array('style' => 'K&R'));
+        $b->IndentStyles(['style' => 'K&R']);
         $b->ArrayNested();
-		$b->NewLines(array('before' => 'T_IF:class:namespace', 'after' => 'class:namespace'));
+		$b->NewLines(['before' => ['T_IF', 'class', 'namespace', 'public', 'private', 'protected'], 'after' => ['namespace']]);
         $b->setInputString($file);
         $b->setOutputFile($file);
         $b->process();
