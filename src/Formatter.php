@@ -1,6 +1,6 @@
 <?php
 
-namespace Contal\Formatter;
+namespace Contal;
 
 class Formatter {
 	

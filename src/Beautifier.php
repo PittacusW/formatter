@@ -1,6 +1,6 @@
 <?php
 
-namespace Contal\Formatter;
+namespace Contal;
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
  * Contents Php_Beautifier class and make some tests
