@@ -38,7 +38,7 @@ class BeautifierTest extends PHPUnit_Framework_TestCase {
     }
     function testaddFilterDirectory() 
     {
-        $sDir = PHP_Beautifier_Common::normalizeDir(dirname(__FILE__));
+        $sDir = Common::normalizeDir(dirname(__FILE__));
         $this->oBeaut->addFilterDirectory($sDir);
         $aDirs = $this->oBeaut->getFilterDirectories();
         $this->assertEquals(end($aDirs) , $sDir);
@@ -65,7 +65,7 @@ class BeautifierTest extends PHPUnit_Framework_TestCase {
         );
         $this->assertEquals($aFilterList, $this->oBeaut->getFilterList());
         // include filter by object
-        $oFilter = new PHP_Beautifier_Filter_ArrayNested($this->oBeaut);
+        $oFilter = new FilterArrayNested($this->oBeaut);
         $this->oBeaut->addFilter($oFilter);
         array_unshift($aFilterList, 'ArrayNested');
         $this->assertEquals($aFilterList, $this->oBeaut->getFilterList());
@@ -73,7 +73,7 @@ class BeautifierTest extends PHPUnit_Framework_TestCase {
             $this->oBeaut->addFilter('Error');
         }
         catch(Exception $oExp) {
-            $this->assertTrue($oExp instanceof Exception_PHP_Beautifier_Filter);
+            $this->assertTrue($oExp instanceof ExceptionFilter);
         }
     }
     public function testgetFilterListTotal() 
@@ -127,7 +127,7 @@ class BeautifierTest extends PHPUnit_Framework_TestCase {
     }
     function testGetFilterDescription() 
     {
-        $oFilter = new PHP_Beautifier_Filter_Default($this->oBeaut);
+        $oFilter = new FilterDefault($this->oBeaut);
         $this->assertEquals($this->oBeaut->getFilterDescription('Default') , $oFilter);
     }
     function testsave() 
@@ -161,7 +161,7 @@ With some levels
 Now
 Works
 */
-?>
+
 SCRIPT;
         $sTextExpected = <<<SCRIPT
 <?php
@@ -179,7 +179,7 @@ With some levels
 Now
 Works
 */
-?>
+
 SCRIPT;
         $sTextExpected = str_replace("\r\n", "\n", $sTextExpected);
         $this->oBeaut->setInputString($sTextOriginal);
@@ -204,7 +204,7 @@ function testDocComment()
 *
         * Other line
 */
-?>
+
 SCRIPT;
         $sTextExpected = <<<SCRIPT
 <?php
@@ -217,7 +217,7 @@ SCRIPT;
  *
  * Other line
  */
-?>
+
 SCRIPT;
         $this->oBeaut->setInputString($sTextOriginal);
         $this->oBeaut->process();
@@ -248,7 +248,7 @@ break;
 }
 break;
 }
-?>
+
 SCRIPT;
         $sTextExpected = <<<SCRIPT
 <?php
@@ -274,7 +274,7 @@ switch (\$a) {
         }
     break;
 }
-?>
+
 SCRIPT;
         $this->oBeaut->setInputString($sTextOriginal);
         $this->oBeaut->process();
@@ -343,4 +343,4 @@ SCRIPT;
     }
     */
 }
-?>
+

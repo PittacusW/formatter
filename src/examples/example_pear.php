@@ -48,4 +48,3 @@ return true;
 }
 // In the next line, '#' will be transformed in //
 echo '# is not aprecciated!';  # not allowed comment
-?>

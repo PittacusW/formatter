@@ -54,7 +54,7 @@
     define('PHP_Beautifier_WINDOWS', substr(PHP_OS, 0, 3) == 'WIN');
     error_reporting(E_ALL);
     // get log object
-    $oLog = PHP_Beautifier_Common::getLog();
+    $oLog = Common::getLog();
     
     //default_options
     $aInputFiles = STDIN;
@@ -260,4 +260,3 @@
          );
          exit;
     }
-?>

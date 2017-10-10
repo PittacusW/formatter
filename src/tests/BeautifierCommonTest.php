@@ -25,28 +25,27 @@
         function testnormalizeDir() 
         {
             $sDir = str_replace(DIRECTORY_SEPARATOR, '/', dirname(__FILE__)) .'/';
-            $this->assertEquals($sDir, PHP_Beautifier_Common::normalizeDir(dirname(__FILE__)));
+            $this->assertEquals($sDir, Common::normalizeDir(dirname(__FILE__)));
         }
         function testgetFilesByPattern() 
         {
-            $sDir = PHP_Beautifier_Common::normalizeDir(dirname(__FILE__));
+            $sDir = Common::normalizeDir(dirname(__FILE__));
             $aExpected = array(
                 $sDir.'BeautifierTest.php'
             );
-            $this->assertEquals($aExpected, PHP_Beautifier_Common::getFilesByPattern($sDir, 'BeautifierTest\....', false));
+            $this->assertEquals($aExpected, Common::getFilesByPattern($sDir, 'BeautifierTest\....', false));
         }
         function testgetFilesByGlob() 
         {
-            $sDir = PHP_Beautifier_Common::normalizeDir(dirname(__FILE__));
+            $sDir = Common::normalizeDir(dirname(__FILE__));
             $aExpected = array(
                 $sDir.'BeautifierCommonTest.php'
             );
-            $this->assertEquals($aExpected, PHP_Beautifier_Common::getFilesByGlob($sDir.basename(__FILE__, '.php') .'.???', false));
+            $this->assertEquals($aExpected, Common::getFilesByGlob($sDir.basename(__FILE__, '.php') .'.???', false));
         }
         function testWsToString() {
-            $this->assertEquals(' \t\r\n',PHP_Beautifier_Common::wsToString(" \t\r\n"));
+            $this->assertEquals(' \t\r\n',Common::wsToString(" \t\r\n"));
         }
 
     }
 
-?>

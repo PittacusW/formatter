@@ -11,12 +11,17 @@
    ],
    "require":{
       "php":">=7.0",
-      "ext-tokenizer":"*",
-      "pear/pear": "^1.10"  
+      "ext-tokenizer":"*"
    },
    "autoload":{
       "psr-4":{
          "Contal\\":"src/"
-      }
+      },
+      "psr-0":{
+         "Contal\\":"src/"
+      },
+      "classmap":[
+         "src/"
+      ]
    }
 }

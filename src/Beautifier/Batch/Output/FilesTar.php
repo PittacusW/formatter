@@ -47,7 +47,7 @@ class PHP_Beautifier_Batch_Output_FilesTar extends PHP_Beautifier_Batch_Output {
         parent::__construct($oBatch);
         $sOutput = $this->oBatch->getOutputPath();
         $sOutput = preg_replace("/(\.tar|\.tar\.gz|\.tgz|\.gz|\.tar\.bz2)$/", '', $sOutput) .".".$this->sExt;
-        PHP_Beautifier_Common::createDir($sOutput);
+        Common::createDir($sOutput);
         $this->oTar = new Archive_Tar($sOutput, $this->sCompress);
     }
     public function get() 
@@ -57,7 +57,7 @@ class PHP_Beautifier_Batch_Output_FilesTar extends PHP_Beautifier_Batch_Output {
     public function save() 
     {
         $aInputFiles = $this->oBatch->getInputFiles();
-        $aOutputFiles = PHP_Beautifier_Common::getSavePath($aInputFiles);
+        $aOutputFiles = Common::getSavePath($aInputFiles);
         for ($x = 0;$x<count($aInputFiles);$x++) {
             $this->beautifierSetInputFile($aInputFiles[$x]);
             $this->beautifierProcess();
@@ -65,4 +65,3 @@ class PHP_Beautifier_Batch_Output_FilesTar extends PHP_Beautifier_Batch_Output {
         }
     }
 }
-?>

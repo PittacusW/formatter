@@ -2,7 +2,7 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
@@ -50,7 +50,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    Release: 0.1.15
  */
-class PHP_Beautifier_Filter_ArrayNested extends PHP_Beautifier_Filter
+class FilterArrayNested extends Filter
 {
     public function t_parenthesis_open($sTag) 
     {
@@ -86,4 +86,3 @@ class PHP_Beautifier_Filter_ArrayNested extends PHP_Beautifier_Filter
         }
     }
 }
-?>

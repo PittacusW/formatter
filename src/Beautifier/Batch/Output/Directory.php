@@ -42,13 +42,13 @@ class PHP_Beautifier_Batch_Output_Directory extends PHP_Beautifier_Batch_Output 
     {
         $aInputFiles = $this->oBatch->getInputFiles();
         $sOutputPath = $this->oBatch->getOutputPath();
-        $aOutputFiles = PHP_Beautifier_Common::getSavePath($aInputFiles, $sOutputPath);
-        $oLog = PHP_Beautifier_Common::getLog();
+        $aOutputFiles = Common::getSavePath($aInputFiles, $sOutputPath);
+        $oLog = Common::getLog();
         for ($x = 0;$x<count($aInputFiles);$x++) {
             try {
                 $this->beautifierSetInputFile($aInputFiles[$x]);
                 $this->beautifierProcess();
-                PHP_Beautifier_Common::createDir($aOutputFiles[$x]);
+                Common::createDir($aOutputFiles[$x]);
                 $this->beautifierSave($aOutputFiles[$x]);
             }
             catch(Exception $oExp) {
@@ -74,4 +74,3 @@ class PHP_Beautifier_Batch_Output_Directory extends PHP_Beautifier_Batch_Output 
         return $sText;
     }
 }
-?>

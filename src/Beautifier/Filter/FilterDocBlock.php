@@ -2,7 +2,7 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
 
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
@@ -53,7 +53,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @license    http://www.php.net/license/3_0.txt PHP License 3.0
  * @version    Release: 0.1.15
  */
-class PHP_Beautifier_Filter_DocBlock extends PHP_Beautifier_Filter
+class FilterDocBlock extends Filter
 {
     public function t_doc_comment($sTag)
     {
@@ -65,4 +65,4 @@ class PHP_Beautifier_Filter_DocBlock extends PHP_Beautifier_Filter
         $this->oBeaut->addNewLineIndent();
     }
 }
-?>
+

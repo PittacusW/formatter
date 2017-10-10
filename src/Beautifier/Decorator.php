@@ -33,9 +33,9 @@ namespace Contal\Beautifier;
 * @license      http://www.php.net/license/3_0.txt  PHP License 3.0
 * @version      Release: 0.1.15
 */
-abstract class PHP_Beautifier_Decorator implements PHP_Beautifier_Interface {
+abstract class PHP_Beautifier_Decorator implements BeautifierInterface {
     protected $oBeaut;
-    function __construct(PHP_Beautifier_Interface $oBeaut) 
+    function __construct(BeautifierInterface $oBeaut) 
     {
         $this->oBeaut = $oBeaut;
     }
@@ -51,4 +51,3 @@ abstract class PHP_Beautifier_Decorator implements PHP_Beautifier_Interface {
         }
     }
 }
-?>

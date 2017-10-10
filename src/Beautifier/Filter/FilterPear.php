@@ -2,8 +2,8 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
-use Contal\Beautifier\Filter\PHP_Beautifier_Filter_Default;
+use Contal\Beautifier\Filter;
+use Contal\Beautifier\Filter\FilterDefault;
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
@@ -33,7 +33,7 @@ require_once ('PEAR/Config.php');
 /**
  * Filter the code to make it compatible with PEAR Coding Standards
  *
- * The default filter, {@link PHP_Beautifier_Filter_Default} have most of the specs
+ * The default filter, {@link FilterDefault} have most of the specs
  * but adhere more to GNU C.
  * So, this filter make the following modifications:
  * - Add 2 newlines after Break in switch statements. Break indent is the same of previous line
@@ -62,7 +62,7 @@ require_once ('PEAR/Config.php');
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    CVS: $Id:$
  */
-class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
+class FilterPear extends Filter
 {
     protected $aSettings = array('add_header' => false, 'newline_class' => true, 'newline_function' => true, 'switch_without_indent'=> true);
     protected $sDescription = 'Filter the code to make it compatible with PEAR Coding Specs';
@@ -83,7 +83,7 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
             $this->oBeaut->add($sTag);
             $this->oBeaut->addNewLineIndent();            
         } else {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
     }
     function t_semi_colon($sTag) 
@@ -100,7 +100,7 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
             $this->oBeaut->add($sTag . " "); // Bug 8327
             
         } else {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
     }
     function t_case($sTag) 
@@ -142,7 +142,7 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
                 $bypass = false;
             }
             if ($bypass) {
-                return PHP_Beautifier_Filter::BYPASS;
+                return Filter::BYPASS;
             }
             $this->oBeaut->removeWhitespace();
             $this->oBeaut->addNewLineIndent();
@@ -154,9 +154,9 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
     function t_comment($sTag) 
     {
         if ($sTag{0} != '#') {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
-        $oFilterDefault = new PHP_Beautifier_Filter_Default($this->oBeaut);
+        $oFilterDefault = new FilterDefault($this->oBeaut);
         $sTag = '//' . substr($sTag, 1);
         return $oFilterDefault->t_comment($sTag);
     }
@@ -193,7 +193,7 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
             $sDataPath = $sLicense;
         } else {
             $oConfig = PEAR_Config::singleton();
-            $sDataPath = PHP_Beautifier_Common::normalizeDir($oConfig->get('data_dir')) . 'PHP_Beautifier/licenses/' . $sLicense . '.txt';
+            $sDataPath = Common::normalizeDir($oConfig->get('data_dir')) . 'PHP_Beautifier/licenses/' . $sLicense . '.txt';
         }
         if (file_exists($sDataPath)) {
             $sLicenseText = file_get_contents($sDataPath);
@@ -206,4 +206,4 @@ class PHP_Beautifier_Filter_Pear extends PHP_Beautifier_Filter
         $this->oBeaut->addNewLineIndent();
     }
 }
-?>
+

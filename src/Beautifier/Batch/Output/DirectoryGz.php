@@ -48,4 +48,3 @@ class PHP_Beautifier_Batch_Output_DirectoryGz extends PHP_Beautifier_Batch_Outpu
         return new Archive_Tar($sFileName.'.tgz', 'gz');
     }
 }
-?>

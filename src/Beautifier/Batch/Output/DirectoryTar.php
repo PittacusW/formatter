@@ -47,13 +47,13 @@ abstract class PHP_Beautifier_Batch_Output_DirectoryTar extends PHP_Beautifier_B
     {
         $aInputFiles = $this->oBatch->getInputFiles();
         $sOutputPath = $this->oBatch->getOutputPath();
-        $aOutputFiles = PHP_Beautifier_Common::getSavePath($aInputFiles, $sOutputPath);
+        $aOutputFiles = Common::getSavePath($aInputFiles, $sOutputPath);
         for ($x = 0;$x<count($aInputFiles);$x++) {
             unset($oTar);
             $oTar = $this->getTar($aOutputFiles[$x]);
             $this->beautifierSetInputFile($aInputFiles[$x]);
             $this->beautifierProcess();
-            PHP_Beautifier_Common::createDir($aOutputFiles[$x]);
+            Common::createDir($aOutputFiles[$x]);
             $oTar->addString(basename($aOutputFiles[$x]) , $this->beautifierGet());
         }
         return true;
@@ -65,4 +65,3 @@ abstract class PHP_Beautifier_Batch_Output_DirectoryTar extends PHP_Beautifier_B
     {
     }
 }
-?>

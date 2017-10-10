@@ -2,7 +2,8 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
+use Contal\Beautifier\Common;
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
@@ -49,7 +50,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    Release: 0.1.15
  */
-final class PHP_Beautifier_Filter_Default extends PHP_Beautifier_Filter
+final class FilterDefault extends Filter
 {
     protected $sDescription = 'Default Filter for PHP_Beautifier';
     function __call($sMethod, $aArgs) 
@@ -57,7 +58,6 @@ final class PHP_Beautifier_Filter_Default extends PHP_Beautifier_Filter
         if (!is_array($aArgs) or count($aArgs) != 1) {
             throw (new Exception('Call to Filter::__call with wrong argument'));
         }
-        PHP_Beautifier_Common::getLog()->log('Default Filter:unhandled[' . $aArgs[0] . ']', PEAR_LOG_DEBUG);
         $this->oBeaut->add($aArgs[0]);
     }
     // Bypass the function!
@@ -475,4 +475,3 @@ final class PHP_Beautifier_Filter_Default extends PHP_Beautifier_Filter
         }
     }
 }
-?>

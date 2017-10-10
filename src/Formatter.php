@@ -2,21 +2,22 @@
 
 namespace Contal;
 
+include_once '../vendor/autoload.php';
+
 class Formatter {
 	
 	public static function format($file) {
 		$b = new Beautifier;
         $b->setIndentChar("\t");
         $b->setIndentNumber(1);
-		$b->addFilter('EqualsAlign');
-        $b->addFilter('Default');
-        $b->addFilter('IndentStyles',array('style' => 'K&R'));
-        $b->addFilter('ArrayNested');
-		$b->addFilter('NewLines', array('before' => 'class:namespace:T_FUNCTION', 'after' => 'class:namespace'));
-        $b->setInputString($clean);
+		$b->EqualsAlign();
+        $b->Default();
+        $b->IndentStyles(array('style' => 'K&R'));
+        $b->ArrayNested();
+		$b->NewLines(array('before' => 'T_IF:class:namespace', 'after' => 'class:namespace'));
+        $b->setInputString($file);
         $b->setOutputFile($file);
         $b->process();
-        $b->save();
-		return $b;
+        return $b->get();
 	}
 }

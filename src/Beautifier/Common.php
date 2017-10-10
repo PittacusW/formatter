@@ -4,7 +4,7 @@ namespace Contal\Beautifier;
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
-* PHP_Beautifier_Common and PHP_Beautifier_Interface
+* Common and BeautifierInterface
 *
 * PHP version 5
 *
@@ -37,7 +37,7 @@ namespace Contal\Beautifier;
 * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
 * @version    Release: 0.1.15
 */
-class PHP_Beautifier_Common {
+class Common {
     /**
     * Normalize reference to directories
     * @param  string path to directory
@@ -55,7 +55,7 @@ class PHP_Beautifier_Common {
     * Search, inside a dir, for a file pattern, using regular expresion
     * Example:
     *
-    * <code>PHP_Beautifier_Common::getFilesByPattern('.','*.php',true);</code>
+    * <code>Common::getFilesByPattern('.','*.php',true);</code>
     * Search recursively for all the files with php extensions
     * in the current dir
     * @param    string  path to a dir
@@ -77,13 +77,13 @@ class PHP_Beautifier_Common {
             if ($entry == '.' or $entry == '..') {
                 continue;
             } elseif (is_dir($sDir.'/'.$entry) and $bRecursive) {
-                $matches = array_merge($matches, PHP_Beautifier_Common::getFilesByPattern($sDir.'/'.$entry, $sFilePattern, $bRecursive));
+                $matches = array_merge($matches, Common::getFilesByPattern($sDir.'/'.$entry, $sFilePattern, $bRecursive));
             } elseif (preg_match("/".$sFilePattern."$/", $entry)) {
                 $matches[] = $sDir."/".$entry;
             }
         }
         if (!$matches) {
-            PHP_Beautifier_Common::getLog()->log("$sDir/$sFilePattern pattern don't match any file", PEAR_LOG_DEBUG);
+            Common::getLog()->log("$sDir/$sFilePattern pattern don't match any file", PEAR_LOG_DEBUG);
         }
         return $matches;
     }
@@ -122,7 +122,7 @@ class PHP_Beautifier_Common {
     */
     public static function getSavePath($aFiles, $sPath = './') 
     {
-        $sPath = PHP_Beautifier_Common::normalizeDir($sPath);
+        $sPath = Common::normalizeDir($sPath);
         // get the lowest denominator..
         $sPrevious = '';
         $iCut = 0;
@@ -161,7 +161,7 @@ class PHP_Beautifier_Common {
             return glob($sPath);
         } else {
             $sDir = (dirname($sPath)) ? realpath(dirname($sPath)) : realpath('./');
-            $sDir = PHP_Beautifier_Common::normalizeDir($sDir);
+            $sDir = Common::normalizeDir($sDir);
 			$sDir = substr($sDir, 0, -1); // strip last slash
             $sGlob = basename($sPath);
             $dh = @opendir($sDir);
@@ -173,7 +173,7 @@ class PHP_Beautifier_Common {
                 if ($entry == '.' or $entry == '..') {
                     continue;
                 } elseif (is_dir($sDir.'/'.$entry)) {
-                    $aMatches = array_merge($aMatches, PHP_Beautifier_Common::getFilesByGlob($sDir.'/'.$entry.'/'.$sGlob, true));
+                    $aMatches = array_merge($aMatches, Common::getFilesByGlob($sDir.'/'.$entry.'/'.$sGlob, true));
                 }
             }
             return $aMatches;
@@ -184,10 +184,6 @@ class PHP_Beautifier_Common {
     * Always return the same object (Singleton pattern)
     * @return Log_composite
     */
-    public static function getLog() 
-    {
-        return Log::singleton('composite', 'PHP_Beautifier');
-    }
     /**
     * Transform whitespaces into its representation
     * So, tabs becomes \t, newline \n and feed \r
@@ -218,24 +214,4 @@ class PHP_Beautifier_Common {
 * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
 * @version    Release: 0.1.15
 */
-interface PHP_Beautifier_Interface {
-    /**
-    * Process the file(s) or string
-    */
-    public function process();
-    /**
-    * Show on screen the output
-    */
-    public function show();
-    /**
-    * Get the output on a string
-    * @return string
-    */
-    public function get();
-    /**
-    * Save the output to a file
-    * @param string path to file
-    */
-    public function save($sFile = null);
-}
-?>
+

@@ -177,7 +177,7 @@ class PHP_Beautifier_Batch extends PHP_Beautifier_Decorator {
         } else {
             $mInputFiles = array();
             foreach($this->mPreInputFiles as $sPath) {
-                $mInputFiles = array_merge($mInputFiles, PHP_Beautifier_Common::getFilesByGlob($sPath, $this->bRecursive));
+                $mInputFiles = array_merge($mInputFiles, Common::getFilesByGlob($sPath, $this->bRecursive));
             }
         }
         // now, we create stream references for compressed files....
@@ -254,7 +254,7 @@ class PHP_Beautifier_Batch extends PHP_Beautifier_Decorator {
         $sCompress = ($this->sCompress) ? ucfirst($this->sCompress) : '';
         $sClass = $this->sOutputMode.$sCompress;
         $sClassEngine = 'PHP_Beautifier_Batch_Output_'.$sClass;
-        $sClassFile = PHP_Beautifier_Common::normalizeDir(dirname(__FILE__)) .'Batch/Output/'.$sClass.'.php';
+        $sClassFile = Common::normalizeDir(dirname(__FILE__)) .'Batch/Output/'.$sClass.'.php';
         if (!file_exists($sClassFile)) {
             throw (new Exception("Doesn't exists file definition for $sClass ($sClassFile)"));
         } else {
@@ -312,4 +312,4 @@ class PHP_Beautifier_Batch extends PHP_Beautifier_Decorator {
         return $this->sPreOutputFile;
     }
 }
-?>
+

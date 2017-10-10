@@ -2,7 +2,7 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
 
 
 /**
@@ -42,7 +42,7 @@ require_once ('PEAR/Config.php');
  * @license    http://www.gnu.org/licenses/lgpl.html  LGPL
  * @version    Release: 0.0.1
  */
-class PHP_Beautifier_Filter_phpBB extends PHP_Beautifier_Filter
+class FilterphpBB extends Filter
 {
     protected $sDescription = 'Filter the code to make it compatible with phpBB Coding Standards';
     private $iNestedIfs = 0;
@@ -102,4 +102,3 @@ class PHP_Beautifier_Filter_phpBB extends PHP_Beautifier_Filter
         $this->iNestedIfs = 0;
     }
 }
-?>

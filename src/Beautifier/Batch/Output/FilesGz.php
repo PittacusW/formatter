@@ -43,4 +43,3 @@ class PHP_Beautifier_Batch_Output_FilesGz extends PHP_Beautifier_Batch_Output_Fi
     protected $sCompress = 'gz';
     protected $sExt = 'tgz';
 }
-?>

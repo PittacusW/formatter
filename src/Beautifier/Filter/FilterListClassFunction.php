@@ -2,7 +2,7 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
 
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
@@ -48,7 +48,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    Release: 0.1.15
  */
-class PHP_Beautifier_Filter_ListClassFunction extends PHP_Beautifier_Filter
+class FilterListClassFunction extends Filter
 {
     protected $aFilterTokenFunctions = array(
         T_CLASS => 't_class',
@@ -84,7 +84,7 @@ class PHP_Beautifier_Filter_ListClassFunction extends PHP_Beautifier_Filter
             }
             array_push($this->aFunctions, $sNext);
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
     function includeInList($sTag, $sValue) 
     {
@@ -99,21 +99,21 @@ class PHP_Beautifier_Filter_ListClassFunction extends PHP_Beautifier_Filter
             }
             array_push($this->aClasses, $sClassName);
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
     function t_doc_comment($sTag) 
     {
         if (strpos($sTag, 'Class and Function List') !== FALSE) {
             $this->iComment = $this->oBeaut->iCount;
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
     function t_open_tag($sTag) 
     {
         if (is_null($this->iOpenTag)) {
             $this->iOpenTag = $this->oBeaut->iCount;
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
     function postProcess() 
     {
@@ -153,4 +153,3 @@ class PHP_Beautifier_Filter_ListClassFunction extends PHP_Beautifier_Filter
         }
     }
 }
-?>

@@ -2,8 +2,8 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
-
+use Contal\Beautifier\Filter;
+use Contal\Beautifier;
 
 /**
  * Filter Indent Styles: Indent the code in k&r, allman, gnu or whitesmiths
@@ -78,7 +78,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version    Release: 0.1.15
  */
-class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
+class FilterIndentStyles extends Filter
 {
     protected $aSettings = array(
         'style' => 'K&R'
@@ -92,7 +92,7 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
         "ws" => "ws"
     );
     protected $sDescription = 'Filter the code in 4 different indent styles: K&R, Allman, Whitesmiths and GNU';
-    public function __construct(PHP_Beautifier $oBeaut, $aSettings = array()) 
+    public function __construct(Beautifier $oBeaut, $aSettings = array()) 
     {
         parent::__construct($oBeaut, $aSettings);
         $this->addSettingDefinition('style', 'text', 'Style for indent: K&R, Allman, Whitesmiths, GNU');
@@ -100,7 +100,7 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
     public function __call($sMethod, $aArgs) 
     {
         if (strtolower($this->getSetting('style')) == 'k&r') {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
         $sNewMethod = $this->_getFunctionForStyle($sMethod);
         if (method_exists($this, $sNewMethod)) {
@@ -109,7 +109,7 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
                 $sNewMethod
             ) , $aArgs);
         } else {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
     }
     /**
@@ -201,7 +201,7 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
     /**
      * Else for bds, gnu & ws
      * @param    string  else or elseif
-     * @return   void|PHP_Beautifier_Filter::BYPASS
+     * @return   void|Filter::BYPASS
      */
     function t_else($sTag) 
     {
@@ -213,7 +213,7 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
                     $this->oBeaut->add(' ');
             }
         } else {
-            return PHP_Beautifier_Filter::BYPASS;
+            return Filter::BYPASS;
         }
     }
     /**
@@ -230,4 +230,3 @@ class PHP_Beautifier_Filter_IndentStyles extends PHP_Beautifier_Filter
         return $sMethod . "_" . $this->aAllowedStyles[$sStyle];
     }
 }
-?>

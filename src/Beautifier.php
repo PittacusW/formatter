@@ -2,262 +2,68 @@
 
 namespace Contal;
 
-use Contal\Beautifier\PHP_Beautifier_Interface;
-use Contal\Beautifier\PHP_Beautifier_Common;
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\BeautifierInterface;
+use Contal\Beautifier\Common;
+use Contal\Beautifier\Filter;
 use Contal\Beautifier\StreamWrapper;
-use Contal\Beautifier\Exception_PHP_Beautifier_Filter;
-use Contal\Beautifier\Filter\PHP_Beautifier_Filter_Default;
+use Contal\Beautifier\ExceptionFilter;
+use Contal\Beautifier\Filter\FilterDefault;
+use Contal\Beautifier\Filter\FilterEqualsAlign;
+use Contal\Beautifier\Filter\FilterIndentStyles;
+use Contal\Beautifier\Filter\FilterArrayNested;
+use Contal\Beautifier\Filter\FilterNewLines;
 
-/* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
-/**
- * Contents Php_Beautifier class and make some tests
- *
- * PHP version 5
- *
- * LICENSE: This source file is subject to version 3.0 of the PHP license
- * that is available through the world-wide-web at the following URI:
- * http://www.php.net/license/3_0.txt.  If you did not receive a copy of
- * the PHP License and are unable to obtain it through the web, please
- * send a note to license@php.net so we can mail you a copy immediately.
- * @category   PHP
- * @package PHP_Beautifier
- * @author Claudio Bustos <cdx@users.sourceforge.com>
- * @copyright  2004-2010 Claudio Bustos
- * @link     http://pear.php.net/package/PHP_Beautifier
- * @link     http://beautifyphp.sourceforge.net
- * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
- * @version    CVS: $Id:$
- */
-
-// Before all, test the tokenizer extension
 if (!extension_loaded('tokenizer')) {
     throw new Exception("Compile php with tokenizer extension. Use --enable-tokenizer or don't use --disable-all on configure.");
 }
-include_once 'PEAR.php';
-include_once 'PEAR/Exception.php';
-/**
- * Require PHP_Beautifier_Filter
- */
-//include_once __DIR__ . '/Beautifier/Filter.php';
-/**
- * Require PHP_Beautifier_Filter_Default
- */
-//include_once __DIR__ . '/Beautifier/Filter/Default.filter.php';
-/**
- * Require PHP_Beautifier_Common
- */
-//include_once __DIR__ . '/Beautifier/Common.php';
-/**
- * Require Log
- */
-include_once 'Log.php';
-/**
- * Require Exceptions
- */
-//include_once __DIR__ . '/Beautifier/Exception.php';
-/**
- * Require StreamWrapper
- */
-//include_once __DIR__ . '/Beautifier/StreamWrapper.php';
-/**
- * PHP_Beautifier
- *
- * Class to beautify php code
- * How to use:
- * # Create a instance of the object
- * # Define the input and output files
- * # Optional: Set one or more Filter. They are processed in LIFO order (last in, first out)
- * # Process the file
- * # Get it, save it or show it.
- *
- * <code>
- * $oToken = new PHP_Beautifier(); // create a instance
- * $oToken->addFilter('ArraySimple');
- * $oToken->addFilter('ListClassFunction'); // add one or more filters
- * $oToken->setInputFile(__FILE__); // nice... process the same file
- * $oToken->process(); // required
- * $oToken->show();
- * </code>
- * @todo create a web interface.
- * @category   PHP
- * @package PHP_Beautifier
- * @author Claudio Bustos <cdx@users.sourceforge.com>
- * @copyright  2004-2010 Claudio Bustos
- * @link     http://pear.php.net/package/PHP_Beautifier
- * @link     http://beautifyphp.sourceforge.net
- * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
- * @version    Release: 0.1.15
- */
-class Beautifier implements PHP_Beautifier_Interface
-{
-    // public
-    
-    /**
-     * Tokens created by the tokenizer
-     * @var array
-     */
-    public $aTokens = array();
-    /**
-     * Tokens codes assigned to method on Filter
-     * @var array
-     */
+
+define('STDIN',  fopen('php://stdin',  'r'));
+define('STDOUT', fopen('php://stdout', 'w'));
+define('STDERR', fopen('php://stderr', 'w'));
+
+class Beautifier implements BeautifierInterface {
+	
+	public $aTokens = array();
     public $aTokenFunctions = array();
-    /**
-     * Token Names
-     * @var array
-     */
     public $aTokenNames = Array();
-    /**
-     * Stores the output
-     * @var array
-     */
     public $aOut = array();
-    /**
-     * Contains the assigment of modes
-     * @var array
-     * @see setMode()
-     * @see unsetMode()
-     * @see getMode()
-     */
     public $aModes = array();
-    /**
-     * List of availables modes
-     * @var array
-     */
     public $aModesAvailable = array(
         'ternary_operator',
         'double_quote'
     );
-    /**
-     * Settings for the class
-     * @var array
-     */
     public $aSettings = array();
-    /**
-     * Index of current token
-     * @var int
-     */
     public $iCount = 0;
-    /**
-     * Chars for indentation
-     * @var int
-     */
     public $iIndentNumber = 4;
-    /**
-     * Level of array nesting
-     * @var int
-     */
     public $iArray = 0;
-    /**
-     * Level of ternary operator nesting
-     * @var int
-     */
     public $iTernary = 0;    
-    /**
-     * Level of parenthesis nesting
-     * @var int
-     */
     public $iParenthesis = 0;
-    /**
-     * Level of verbosity (debug)
-     * @var int
-     */
     public $iVerbose = false;
-    /**
-     * Name of input file
-     * @var string
-     */
     public $sInputFile = '';
-    /**
-     * Name of output file
-     * @var string
-     */
     public $sOutputFile = '';
-    /**
-     * Type of newline
-     * @var string
-     */
     public $sNewLine = PHP_EOL;
-    /**
-     * Type of whitespace to use for indent
-     * @var string
-     */
     public $sIndentChar = ' ';
-    /**
-     * Save the last whitespace used. Use only for Filter! (i miss friends of C++ :( )
-     * @var string
-     */
     public $currentWhitespace = '';
-    /**
-     * Association $aTokens=>$aOut
-     * @var array
-     */
     public $aAssocs = array();
-    /**
-     * Current token. Could be changed by a filter (See Lowercase)
-     * @var array
-     */
     public $aCurrentToken = array();
-    
-    // private
-    
-    /**
-     * type of file
-     */
     private $sFileType = 'php';
-    /**
-     * Chars of indent
-     * @var int
-     */
     private $iIndent = 0;
-    /**
-     * @var int
-     */
     private $aIndentStack = array();
-    /** Text to beautify */
     private $sText = '';
-    /** Constant for last Control */
     private $iControlLast;
-    /** References to PHP_Beautifier_Filter's */
     private $aFilters = array();
-    /**
-     * Stack with control construct
-     */
     private $aControlSeq = array();
-    /**
-     * List of construct that start control structures
-     */
     private $aControlStructures = array();
-    /**
-     * List of Control for parenthesis
-     */
     private $aControlParenthesis = array();
-    /** 
-     * List of construct that end control structures
-     */
     private $aControlStructuresEnd = array();
-    /** Dirs for Filters */
     private $aFilterDirs = array();
-    /** Flag for beautify/no beautify mode */
     private $bBeautify = true;
-    /** Log */
     private $oLog;
-    /** Before new line holder */
     private $sBeforeNewLine = null;
-    /** Activate or deactivate 'no delete previous space' */
     private $bNdps = false;
-    /** Mark the begin of the end of a DoWhile sequence **/
     private $doWhileBeginEnd;
-    // Methods
     
-    /**
-     * Constructor.
-     * Assing values to {@link $aControlStructures},{@link $aControlStructuresEnd},
-     * {@link $aTokenFunctions}
-     */
-    public function __construct() 
-    {
+    public function __construct() {
         $this->aControlStructures = array(
             T_CLASS,
             T_FUNCTION,
@@ -287,10 +93,8 @@ class Beautifier implements PHP_Beautifier_Interface
             $this->aTokenFunctions[constant($sToken) ] = $sToken;
         }
         $aTokensToChange = array(
-            /* QUOTES */
             '"' => "T_DOUBLE_QUOTE",
             "'" => "T_SINGLE_QUOTE",
-            /* PUNCTUATION */
             '(' => 'T_PARENTHESIS_OPEN',
             ')' => 'T_PARENTHESIS_CLOSE',
             ';' => 'T_SEMI_COLON',
@@ -305,7 +109,6 @@ class Beautifier implements PHP_Beautifier_Interface
             '.' => 'T_DOT',
             '[' => 'T_OPEN_SQUARE_BRACE',
             ']' => 'T_CLOSE_SQUARE_BRACE',
-            /* OPERATOR*/
             '+' => 'T_OPERATOR',
             '-' => 'T_OPERATOR',
             '*' => 'T_OPERATOR',
@@ -319,12 +122,10 @@ class Beautifier implements PHP_Beautifier_Interface
             T_SL => 'T_OPERATOR',
             T_SR => 'T_OPERATOR',
             T_OBJECT_OPERATOR => 'T_OBJECT_OPERATOR',
-            /* INCLUDE */
             T_INCLUDE => 'T_INCLUDE',
             T_INCLUDE_ONCE => 'T_INCLUDE',
             T_REQUIRE => 'T_INCLUDE',
             T_REQUIRE_ONCE => 'T_INCLUDE',
-            /* LANGUAGE CONSTRUCT */
             T_FUNCTION => 'T_LANGUAGE_CONSTRUCT',
             T_PRINT => 'T_LANGUAGE_CONSTRUCT',
             T_RETURN => 'T_LANGUAGE_CONSTRUCT',
@@ -334,15 +135,12 @@ class Beautifier implements PHP_Beautifier_Interface
             T_VAR => 'T_LANGUAGE_CONSTRUCT',
             T_GLOBAL => 'T_LANGUAGE_CONSTRUCT',
             T_THROW => 'T_LANGUAGE_CONSTRUCT',
-            /* CONTROL */
             T_IF => 'T_CONTROL',
             T_DO => 'T_CONTROL',
             T_WHILE => 'T_CONTROL',
             T_SWITCH => 'T_CONTROL',
-            /* ELSE */
             T_ELSEIF => 'T_ELSE',
             T_ELSE => 'T_ELSE',
-            /* ACCESS PHP 5 */
             T_INTERFACE => 'T_ACCESS',
             T_FINAL => 'T_ACCESS',
             T_ABSTRACT => 'T_ACCESS',
@@ -351,7 +149,6 @@ class Beautifier implements PHP_Beautifier_Interface
             T_PROTECTED => 'T_ACCESS',
             T_CONST => 'T_ACCESS',
             T_STATIC => 'T_ACCESS',
-            /* COMPARATORS */
             T_PLUS_EQUAL => 'T_ASSIGMENT_PRE',
             T_MINUS_EQUAL => 'T_ASSIGMENT_PRE',
             T_MUL_EQUAL => 'T_ASSIGMENT_PRE',
@@ -390,91 +187,47 @@ class Beautifier implements PHP_Beautifier_Interface
         foreach($aTokensToChange as $iToken => $sFunction) {
             $this->aTokenFunctions[$iToken] = $sFunction;
         }
-        $this->addFilterDirectory(dirname(__FILE__) . '/Beautifier/Filter');
-        $this->addFilter('Default');
-        $this->oLog = PHP_Beautifier_Common::getLog();
     }
-    public function getTokenName($iToken) 
-    {
+	
+	public function EqualsAlign() {
+		$filter = new FilterEqualsAlign($this, []);
+		$this->addFilterObject($filter);
+	}
+
+	public function Default() {
+		$filter = new FilterDefault($this, []);
+		$this->addFilterObject($filter);
+	}
+
+	public function IndentStyles($opt) {
+		$filter = new FilterIndentStyles($this, $opt);
+		$this->addFilterObject($filter);
+	}
+
+	public function ArrayNested() {
+		$filter = new FilterArrayNested($this, []);
+		$this->addFilterObject($filter);
+	}
+
+	public function NewLines($opt) {
+		$filter = new FilterNewLines($this, $opt);
+		$this->addFilterObject($filter);
+	}
+
+	public function getTokenName($iToken) {
         if(!$iToken) {
             throw new Exception("Token $iToken doesn't exists");
         }
         return $this->aTokenNames[$iToken];
     }
-    /**
-     * Start the log for debug
-     * @param    string  filename
-     * @param    int     debug level. See {@link Log}
-     */
-    public function startLog($sFile = 'php_beautifier.log', $iLevel = PEAR_LOG_DEBUG) 
-    {
-        @unlink($sFile);
-        $oLogFile = Log::factory('file', $sFile, 'php_beautifier', array() , PEAR_LOG_DEBUG);
-        $this->oLog->addChild($oLogFile);
-    }
-    /**
-     * Add a filter directory
-     * @param string path to directory
-     * @throws Exception
-     */
-    public function addFilterDirectory($sDir) 
-    {
-        $sDir = PHP_Beautifier_Common::normalizeDir($sDir);
-        if (file_exists($sDir)) {
-            array_push($this->aFilterDirs, $sDir);
-        } else {
-            throw new Exception_PHP_Beautifier_Filter("Path '$sDir' doesn't exists");
-        }
-    }
-    /**
-     * Return an array with all the Filter Dirs
-     * @return array     List of Filter Directories
-     */
-    public function getFilterDirectories() 
-    {
-        return $this->aFilterDirs;
-    }
-    public function addFilterObject(PHP_Beautifier_Filter $oFilter) 
-    {
+
+    public function addFilterObject(Filter $oFilter) {
         array_unshift($this->aFilters, $oFilter);
         return true;
     }
-    /**
-     * Add a Filter to the Beautifier
-     * The first argument is the name of the file of the Filter.
-     * @tutorial PHP_Beautifier/Filter/Filter2.pkg#use
-     * @param  string name of the Filter
-     * @param  array settings for the Filter
-     * @return bool true if Filter is loaded, false if the same filter was loaded previously
-     * @throws  Exception
-     */
-    public function addFilter($mFilter, $aSettings = array()) 
-    {
-        if ($mFilter instanceOf PHP_Beautifier_Filter) {
-            return $this->addFilterObject($mFilter);
-        }
-        $sFilterClass = 'PHP_Beautifier_Filter_' . $mFilter;
-        if (!class_exists($sFilterClass)) {
-            $this->addFilterFile($mFilter);
-        }
-        $oTemp = new $sFilterClass($this, $aSettings);
-        // verify if same Filter is loaded
-        if (in_array($oTemp, $this->aFilters, TRUE)) {
-            return false;
-        } elseif ($oTemp instanceof PHP_Beautifier_Filter) {
-            $this->addFilterObject($oTemp);
-        } else {
-            throw new Exception_PHP_Beautifier_Filter("'$sFilterClass' isn't a subclass of 'Filter'");
-        }
-    }
-    /**
-     * Removes a Filter
-     * @param    string  name of the filter
-     * @return   bool    true if Filter is removed, false otherwise
-     */
-    public function removeFilter($sFilter) 
-    {
-        $sFilterName = strtolower('PHP_Beautifier_Filter_' . $sFilter);
+
+	public function removeFilter($sFilter) {
+        $sFilterName = strtolower('Filter' . $sFilter);
         foreach($this->aFilters as $sId => $oFilter) {
             if (strtolower(get_class($oFilter)) == $sFilterName) {
                 unset($this->aFilters[$sId]);
@@ -483,143 +236,51 @@ class Beautifier implements PHP_Beautifier_Interface
         }
         return false;
     }
-    /**
-     * Return the Filter Description
-     * @see PHP_Beautifier_Filter::__toString();
-     * @param    string  name of the filter
-     * @return   mixed   string or false
-     */
-    public function getFilterDescription($sFilter) 
-    {
+
+	public function getFilterDescription($sFilter) {
         $aFilters = $this->getFilterListTotal();
         if (in_array($sFilter, $aFilters)) {
             $this->addFilterFile($sFilter);
-            $sFilterClass = 'PHP_Beautifier_Filter_' . $sFilter;
+            $sFilterClass = 'Filter' . $sFilter;
             $oTemp = new $sFilterClass($this, array());
             return $oTemp;
         } else {
             return false;
         }
     }
-    /**
-     * Add a new filter to the processor.
-     * The system will process the filter in LIFO order
-     * @param    string  name of filter
-     * @see process()
-     * @return bool
-     * @throws  Exception
-     */
-    private function addFilterFile($sFilter) 
-    {/*
-        $sFilterClass = 'PHP_Beautifier_Filter_' . $sFilter;
-        if (class_exists($sFilterClass)) {
-            return true;
-        }
-        foreach($this->aFilterDirs as $sDir) {
-            $sFile = $sDir . $sFilter . '.filter.php';
-            if (file_exists($sFile)) {
-                include_once $sFile;
-                if (class_exists($sFilterClass)) {
-                    return true;
-                } else {
-                    throw new Exception_PHP_Beautifier_Filter("File '$sFile' exists, but doesn't exists filter '$sFilterClass'");
-                }
-            }
-        }
-        throw new Exception_PHP_Beautifier_Filter("Doesn't exists filter '$sFilter'");*/
-    }
-    /**
-     * Get the names of the loaded filters
-     * @return array list of Filters
-     */
-    public function getFilterList() 
-    {
+
+    public function getFilterList() {
         foreach($this->aFilters as $oFilter) {
             $aOut[] = $oFilter->getName();
         }
         return $aOut;
     }
-    /**
-     * Get the list of all available Filters in all the include Dirs
-     * @return array list of Filters
-     */
-    public function getFilterListTotal() 
-    {
-        $aFilterFiles = array();
-        foreach($this->aFilterDirs as $sDir) {
-            $aFiles = PHP_Beautifier_Common::getFilesByPattern($sDir, ".*?\.filter\.php");
-            array_walk($aFiles, array(
-                $this,
-                'getFilterList_FilterName'
-            ));
-            $aFilterFiles = array_merge($aFilterFiles, $aFiles);
-        }
-        sort($aFilterFiles);
-        return $aFilterFiles;
-    }
-    /**
-     * Receive a path to a filter and replace it with the name of filter
-     */
-    private function getFilterList_FilterName(&$sFile) 
-    {
-        $aMatch=array();
-        preg_match("/\/([^\/]*?)\.filter\.php/", $sFile, $aMatch);
-        $sFile = $aMatch[1];
-    }
-    public function getIndentChar() 
-    {
+
+    public function getIndentChar() {
         return $this->sIndentChar;
     }
-    public function getIndentNumber() 
-    {
+    public function getIndentNumber() {
         return $this->iIndentNumber;
     }
-    public function getIndent() 
-    {
+    public function getIndent() {
         return $this->iIndent;
     }
-    public function getNewLine() 
-    {
+    public function getNewLine() {
         return $this->sNewLine;
     }
-    /**
-     * Character used for indentation
-     * @param string usually ' ' or "\t"
-     */
-    public function setIndentChar($sChar) 
-    {
+    public function setIndentChar($sChar) {
         $this->sIndentChar = $sChar;
     }
-    /**
-     * Number of characters for indentation
-     * @param int ussualy 4 for space or 1 for tabs
-     */
-    public function setIndentNumber($iIndentNumber) 
-    {
+    public function setIndentNumber($iIndentNumber) {
         $this->iIndentNumber = $iIndentNumber;
     }
-    /**
-     * Character used as a new line
-     * @param string ussualy "\n", "\r\n" or "\r"
-     */
-    public function setNewLine($sNewLine) 
-    {
+    public function setNewLine($sNewLine) {
         $this->sNewLine = $sNewLine;
     }
-    /**
-     * Set the file for beautify
-     * @param string path to file
-     * @throws Exception
-     */
-    public function setInputFile($sFile) 
-    {
-        $bCli = (php_sapi_name() == 'cli');
-        if (strpos($sFile, '://') === FALSE and !file_exists($sFile) and !($bCli and $sFile == STDIN)) {
-            throw new Exception("File '$sFile' doesn't exists");
-        }
+    public function setInputFile($sFile) {
         $this->sText = '';
         $this->sInputFile = $sFile;
-        $fp = ($bCli and $sFile == STDIN) ? STDIN : fopen($sFile, 'r');
+        $fp = STDIN;
         do {
             $data = fread($fp, 8192);
             if (strlen($data) == 0) {
@@ -628,28 +289,13 @@ class Beautifier implements PHP_Beautifier_Interface
             $this->sText.= $data;
         }
         while (true);
-        if (!($bCli and $fp == STDIN)) {
-            fclose($fp);
-        }
         return true;
     }
-    /**
-     * Set the output file for beautify
-     * @param string path to file
-     */
-    public function setOutputFile($sFile) 
-    {
+    public function setOutputFile($sFile) {
         $this->sOutputFile = $sFile;
     }
-    /**
-     * Save the beautified code to output file
-     * @param string path to file. If null, {@link $sOutputFile} if exists, throw exception otherwise
-     * @see setOutputFile();
-     * @throws Exception
-     */
-    public function save($sFile = null) 
-    {
-        $bCli = (php_sapi_name() == 'cli');
+
+	public function save($sFile = null) {
         if (!$sFile) {
             if (!$this->sOutputFile) {
                 throw new Exception("Can't save without a output file");
@@ -658,30 +304,17 @@ class Beautifier implements PHP_Beautifier_Interface
             }
         }
         $sText = $this->get();
-        $fp = ($bCli and $sFile == STDOUT) ? STDOUT : @fopen($sFile, "w");
+        $fp = STDOUT;
         if (!$fp) {
             throw new Exception("Can't save file $sFile");
         }
         fputs($fp, $sText, strlen($sText));
-        if (!($bCli and $sFile == STDOUT)) {
-            fclose($fp);
-        }
-        $this->oLog->log("Success: $sFile saved", PEAR_LOG_INFO);
         return true;
     }
-    /**
-     * Set a string for beautify
-     * @param string Must be preceded by open tag
-     */
-    public function setInputString($sText) 
-    {
+    public function setInputString($sText) {
         $this->sText = $sText;
     }
-    /**
-     * Reset all properties
-     */
-    private function resetProperties() 
-    {
+    private function resetProperties() {
         $aProperties = array(
             'aTokens' => array() ,
             'aOut' => array() ,
@@ -705,19 +338,9 @@ class Beautifier implements PHP_Beautifier_Interface
             $this->$sProperty = $sValue;
         }
     }
-    /**
-     * Process the string or file to beautify
-     * @return bool true on success
-     * @throws Exception
-     */
-    public function process() 
-    {
-        $this->oLog->log('Init process of ' . (($this->sInputFile) ? 'file ' . $this->sInputFile : 'string') , PEAR_LOG_DEBUG);
+
+	public function process() {
         $this->resetProperties();
-        // if file type is php, use token_get_all
-        // else, use a class named PHP_Beautifier_Tokenizer_XXX
-        // instanced with the text and get the tokens with
-        // getTokens()
         if ($this->sFileType == 'php') {
             $this->aTokens = token_get_all($this->sText);
         } else {
@@ -745,10 +368,9 @@ class Beautifier implements PHP_Beautifier_Interface
                 );
             }
             // ArrayNested->off();
-            $sTextLog = PHP_Beautifier_Common::wsToString($aCurrentToken[1]);
+            $sTextLog = Common::wsToString($aCurrentToken[1]);
             // ArrayNested->on();
             $sTokenName = (is_numeric($aCurrentToken[0])) ? token_name($aCurrentToken[0]) : '';
-            $this->oLog->log("Token:" . $sTokenName . "[" . $sTextLog . "]", PEAR_LOG_DEBUG);
             $this->controlToken($aCurrentToken);
             $iFirstOut = count($this->aOut); //5
             $bError = false;
@@ -757,7 +379,6 @@ class Beautifier implements PHP_Beautifier_Interface
                 foreach($this->aFilters as $oFilter) {
                     $bError = true;
                     if ($oFilter->handleToken($this->aCurrentToken) !== FALSE) {
-                        $this->oLog->log('Filter:' . $oFilter->getName() , PEAR_LOG_DEBUG);
                         $bError = false;
                         break;
                     }
@@ -794,7 +415,6 @@ class Beautifier implements PHP_Beautifier_Interface
         foreach($this->aFilters as $oFilter) {
             $oFilter->postProcess();
         }
-        $this->oLog->log('End process', PEAR_LOG_DEBUG);
         return true;
     }
     /**
@@ -970,7 +590,6 @@ class Beautifier implements PHP_Beautifier_Interface
                         $prevIndex ++;
                     }
 
-                    $this->oLog->log('end bracket:' . $this->getPreviousTokenContent($prevIndex) , PEAR_LOG_DEBUG);
                     
                     if ($this->isPreviousTokenContent(array(';','}','{'), $prevIndex)) {
                         if (end($this->aControlSeq)!=T_DO) {
@@ -1021,7 +640,6 @@ class Beautifier implements PHP_Beautifier_Interface
      */
     private function pushControlSeq($aToken) 
     {
-        $this->oLog->log('Push Control:' . $aToken[0] . "->" . $aToken[1], PEAR_LOG_DEBUG);
         array_push($this->aControlSeq, $aToken[0]);
     }
     /**
@@ -1031,7 +649,6 @@ class Beautifier implements PHP_Beautifier_Interface
     private function popControlSeq() 
     {
         $aEl = array_pop($this->aControlSeq);
-        $this->oLog->log('Pop Control:' . $this->getTokenName($aEl) , PEAR_LOG_DEBUG);
         return $aEl;
     }
     /**
@@ -1040,7 +657,6 @@ class Beautifier implements PHP_Beautifier_Interface
     private function pushControlParenthesis() 
     {
         $iPrevious = $this->getPreviousTokenConstant();
-        $this->oLog->log("Push Parenthesis: $iPrevious ->" . $this->getPreviousTokenContent() , PEAR_LOG_DEBUG);
         array_push($this->aControlParenthesis, $iPrevious);
     }
     /**
@@ -1050,7 +666,6 @@ class Beautifier implements PHP_Beautifier_Interface
     private function popControlParenthesis() 
     {
         $iPop = array_pop($this->aControlParenthesis);
-        $this->oLog->log('Pop Parenthesis:' . $iPop, PEAR_LOG_DEBUG);
         return $iPop;
     }
     /**
@@ -1083,7 +698,7 @@ class Beautifier implements PHP_Beautifier_Interface
      * <code>/**ndps** /</code>
      * in {@link get()}, this text will be erased.
      * @see removeWhitespace()
-     * @see PHP_Beautifier_Filter_NewLines
+     * @see FilterNewLines
      */
     public function setNoDeletePreviousSpaceHack($bFlag = true) 
     {
@@ -1417,7 +1032,6 @@ class Beautifier implements PHP_Beautifier_Interface
         $aMatch=array();
 
         for ($x = $this->iCount-1 ; $x >= 0 ; $x--) {
-            $this->oLog->log("sp n:$x", PEAR_LOG_DEBUG);
             $aToken = $this->getToken($x);
             if (is_array($aToken)) {
                 if ($aToken[0] == T_WHITESPACE) {
@@ -1425,17 +1039,14 @@ class Beautifier implements PHP_Beautifier_Interface
                 } elseif (preg_match("/([\s\r\n]+)$/", $aToken[1], $aMatch)) {
                     $sWhiteSpace.= $aMatch[0];
                     // ArrayNested->off();
-                    $this->oLog->log("+space-token-with-sp:[" . PHP_Beautifier_Common::wsToString($sWhiteSpace) . "]", PEAR_LOG_DEBUG);
                     // ArrayNested->on();
                     return $sWhiteSpace;
                 }
             } else {
-                $this->oLog->log("+space-token-without-sp:[" . PHP_Beautifier_Common::wsToString($sWhiteSpace) . "]", PEAR_LOG_DEBUG);
                 return $sWhiteSpace;
             }
         }
         // Strange, but...
-        $this->oLog->log("+space:[" . PHP_Beautifier_Common::wsToString($sWhiteSpace) . "]", PEAR_LOG_DEBUG);
         return $sWhiteSpace;
     }
     /**
@@ -1467,7 +1078,6 @@ class Beautifier implements PHP_Beautifier_Interface
                 break;
             }
         }
-        $this->oLog->log("-space $pop", PEAR_LOG_DEBUG);
         return true;
     }
     /**

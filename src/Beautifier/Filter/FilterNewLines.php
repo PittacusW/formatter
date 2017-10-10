@@ -2,7 +2,8 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
+use Contal\Beautifier;
 
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
@@ -46,7 +47,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @version    Release: 0.1.15
  * @since      Class available since Release 0.1.2
  */
-class PHP_Beautifier_Filter_NewLines extends PHP_Beautifier_Filter
+class FilterNewLines extends Filter
 {
     protected $aSettings = array(
         'before' => false,
@@ -57,7 +58,7 @@ class PHP_Beautifier_Filter_NewLines extends PHP_Beautifier_Filter
     private $aBeforeContent = array();
     private $aAfterToken = array();
     private $aAfterContent = array();
-    public function __construct(PHP_Beautifier $oBeaut, $aSettings = array()) 
+    public function __construct(Beautifier $oBeaut, $aSettings = array()) 
     {
         parent::__construct($oBeaut, $aSettings);
         $this->addSettingDefinition('before', 'text', 'List of contents to put new lines before, separated by colons');
@@ -94,7 +95,6 @@ class PHP_Beautifier_Filter_NewLines extends PHP_Beautifier_Filter
         if (in_array($sContent, $this->aAfterContent) or in_array($iToken, $this->aAfterToken)) {
             $this->oBeaut->setBeforeNewLine($this->oBeaut->sNewLine . '/**ndps**/');
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
 }
-?>

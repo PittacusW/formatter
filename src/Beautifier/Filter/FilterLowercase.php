@@ -2,7 +2,7 @@
 
 namespace Contal\Beautifier\Filter;
 
-use Contal\Beautifier\PHP_Beautifier_Filter;
+use Contal\Beautifier\Filter;
 
 
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
@@ -45,7 +45,7 @@ use Contal\Beautifier\PHP_Beautifier_Filter;
  * @version    Release: 0.1.15
  * @since      Class available since Release 0.1.9
  */
-class PHP_Beautifier_Filter_Lowercase extends PHP_Beautifier_Filter
+class FilterLowercase extends Filter
 {
     protected $sDescription = 'Lowercase all control structures. Parse the output with another Filters';
     private $aControlSeq = array(
@@ -111,13 +111,13 @@ class PHP_Beautifier_Filter_Lowercase extends PHP_Beautifier_Filter
     public function __construct(PHP_Beautifier $oBeaut, $aSettings = array()) 
     {
         parent::__construct($oBeaut, $aSettings);
-        $this->oLog = PHP_Beautifier_Common::getLog();
+        $this->oLog = Common::getLog();
     }
     public function t_string($sTag) {
         if($sTag=='TRUE' or $sTag=='FALSE') {
             $this->oBeaut->aCurrentToken[1]=strtolower($sTag);
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
         
     }
     public function __call($sMethod, $aArgs) 
@@ -129,7 +129,6 @@ class PHP_Beautifier_Filter_Lowercase extends PHP_Beautifier_Filter
             $this->oBeaut->aCurrentToken[1]=strtolower($sContent);
             
         }
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
 }
-?>

@@ -69,4 +69,3 @@ abstract class PHP_Beautifier_Batch_Output
     {
     }
 }
-?>

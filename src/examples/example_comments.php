@@ -28,7 +28,7 @@ $sText = <<<SCRIPT
 <?php
 \$a=(\$b>1)?'0':'2';
 \$b="asa{\$a}";
-?>
+
 SCRIPT;
 //php_beautifier->seatBeautify(true);
 echo 'hi'; /*one comment*/ /*after another*/ /*after another*/
@@ -44,4 +44,3 @@ if ($a=5) // bug 1597
 {
 // bug 1597
 }
-?>

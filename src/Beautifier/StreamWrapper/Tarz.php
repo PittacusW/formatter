@@ -196,4 +196,3 @@ class PHP_Beautifier_StreamWrapper_Tarz implements PHP_Beautifier_StreamWrapper_
         }
     }
     stream_wrapper_register("tarz", "PHP_Beautifier_StreamWrapper_Tarz");
-?>

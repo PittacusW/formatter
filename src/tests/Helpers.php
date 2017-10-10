@@ -9,7 +9,7 @@ if (file_exists(dirname(__FILE__).'/../Beautifier.php')) {
 }
 
 // Mock Filter object
-class Test_Filter extends PHP_Beautifier_Filter {
+class Test_Filter extends Filter {
     public $aTokens = array();
     public $aModes = array();
     public $iIndex = 0;
@@ -24,11 +24,11 @@ class Test_Filter extends PHP_Beautifier_Filter {
     }
 }
 
-class PHP_Beautifier_Filter_BBY extends PHP_Beautifier_Filter {
+class FilterBBY extends Filter {
     function t_access($sTag) {
-        $this->oBeaut->add($this->oBeaut->getTokenName($this->oBeaut->getControlSeq())); return PHP_Beautifier_Filter::BYPASS; 
+        $this->oBeaut->add($this->oBeaut->getTokenName($this->oBeaut->getControlSeq())); return Filter::BYPASS; 
     } 
 } 
 
 
-?>
+

@@ -43,7 +43,7 @@ echo "sdsds";
 echo "don't process this token";
 // php_beautifier->on(true);
 
-?>
+
 SCRIPT;
         $this->setText($sText);
         // verify setBeautify
@@ -55,7 +55,7 @@ SCRIPT;
 <?php
 \$a=(\$b>1)?'0':'2';
 \$b="asa{\$a}";
-?>
+
 SCRIPT;
         //php_beautifier->seatBeautify(true);
         $this->setText($sText);
@@ -72,4 +72,4 @@ SCRIPT;
     }
     
 }
-?>
+

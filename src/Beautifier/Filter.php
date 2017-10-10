@@ -2,8 +2,9 @@
 
 namespace Contal\Beautifier;
 
+use Contal\Beautifier;
 /**
- * Definition of class PHP_Beautifier_Filter
+ * Definition of class Filter
  *
  * PHP version 5
  *
@@ -23,10 +24,10 @@ namespace Contal\Beautifier;
  * @version    CVS: $Id:$
  */
 /**
- * PHP_Beautifier_Filter
+ * Filter
  *
  * Definition for creation of Filters
- * For concrete details, please see {@link PHP_Beautifier_Filter_Default}
+ * For concrete details, please see {@link FilterDefault}
  * @category     PHP
  * @package      PHP_Beautifier
  * @subpackage   Filter
@@ -38,7 +39,7 @@ namespace Contal\Beautifier;
  * @license      http://www.php.net/license/3_0.txt  PHP License 3.0
  * @version      Release: 0.1.15
  */
-abstract class PHP_Beautifier_Filter
+abstract class Filter
 {
     /**
      * Stores a reference to main PHP_Beautifier
@@ -115,7 +116,7 @@ abstract class PHP_Beautifier_Filter
      */
     public function getName()
     {
-        return str_ireplace('PHP_Beautifier_Filter_', '', get_class($this));
+        return str_ireplace('Filter', '', get_class($this));
     }
     /**
      * Turn on the Filter
@@ -171,8 +172,8 @@ abstract class PHP_Beautifier_Filter
      * If the received token is one of the keys of {@link $aFilterTokenFunctions}
      * a function with the same name of the value of that key is called.
      * If the method doesn't exists, {@link __call()} is called, and return
-     * {@link PHP_Beautifier_Filter::BYPASS}. PHP_Beautifier, now, call the next Filter is its list.
-     * If the method exists, it can return true or {@link PHP_Beautifier_Filter::BYPASS}.
+     * {@link Filter::BYPASS}. PHP_Beautifier, now, call the next Filter is its list.
+     * If the method exists, it can return true or {@link Filter::BYPASS}.
      * @param array token
      * @return bool true if the token is processed, false bypass to the next Filter
      * @see PHP_Beautifier::process()
@@ -195,11 +196,11 @@ abstract class PHP_Beautifier_Filter
             if ($this->oBeaut->iVerbose > 5) {
                 echo $sMethod . ":" . trim($sValue) . PHP_EOL;
             }
-            // return false if PHP_Beautifier_Filter::BYPASS
-            return ($this->$sMethod($sValue) !== PHP_Beautifier_Filter::BYPASS);
+            // return false if Filter::BYPASS
+            return ($this->$sMethod($sValue) !== Filter::BYPASS);
         } else { // WEIRD!!! -> Add the same received
             $this->oBeaut->add($token[1]);
-            PHP_Beautifier_Common::getLog()->log("Add same received:" . trim($token[1]) , PEAR_LOG_DEBUG);
+            Common::getLog()->log("Add same received:" . trim($token[1]) , PEAR_LOG_DEBUG);
             return true;
         }
         // never go here
@@ -208,11 +209,11 @@ abstract class PHP_Beautifier_Filter
     /**
      * @param string metodo
      * @param array arguments
-     * @return mixed null or {@link PHP_Beautifier_Filter::BYPASS}
+     * @return mixed null or {@link Filter::BYPASS}
      */
     public function __call($sMethod, $aArgs)
     {
-        return PHP_Beautifier_Filter::BYPASS;
+        return Filter::BYPASS;
     }
     /**
      * Called from {@link PHP_Beautifier::process()} at the beginning
@@ -257,4 +258,3 @@ abstract class PHP_Beautifier_Filter
         return $sOut;
     }
 }
-?>

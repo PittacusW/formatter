@@ -46,7 +46,7 @@ class BeautifierBugsTest extends PHPUnit_Framework_TestCase
 \$a = <<<HEREDOC
 sdsdsds
 HEREDOC;
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -55,7 +55,7 @@ SCRIPT;
 sdsdsds
 HEREDOC;
 
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -71,7 +71,7 @@ SCRIPT;
 if (\$_POST["url"] != "") //inserting data
 {
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -79,7 +79,7 @@ SCRIPT;
 if (\$_POST["url"] != "") //inserting data
 {
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -94,13 +94,13 @@ SCRIPT;
         $sText = <<<SCRIPT
 <?php
 throw new AccountFindException();
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 throw new AccountFindException();
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -108,22 +108,22 @@ SCRIPT;
      * Bug from Pavel Chtchevaev, 2004-11-17
      * There's one more issue about the default filter, try beautifying with
      * it the following string:
-     * "<?php\n\$o->_test1(\$c->test2()->test3())\n?>"
+     * "<?php\n\$o->_test1(\$c->test2()->test3())\n"
      * It will return:
-     * "<?php\n    \$o->_test1(\$c->test2() ->test3())\n?>"
+     * "<?php\n    \$o->_test1(\$c->test2() ->test3())\n"
      */
     function testBugChtchevaev_2004_11_17() 
     {
         $sText = <<<SCRIPT
 <?php
 \$o->_test1(\$c-> test2()-> test3());
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 \$o->_test1(\$c->test2()->test3());
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -158,7 +158,7 @@ SCRIPT;
         }
     }
 
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -182,7 +182,7 @@ class Foo {
         echo "Hello";
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -215,7 +215,7 @@ case "publicevents":
 \$publiceventsOn = "on";
 break;
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -229,7 +229,7 @@ switch (\$subId) {
         \$publiceventsOn = "on";
         break;
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -245,7 +245,7 @@ case 2:
 default:
 break;
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -258,7 +258,7 @@ switch (\$var) {
     default:
     break;
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -270,12 +270,12 @@ SCRIPT;
         ));
         $sText = <<<SCRIPT
 <?php include_once ("turnos.conf.php")
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php include_once ("turnos.conf.php")
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -295,7 +295,7 @@ class CampaignManagerConfig {
         
 }
 
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -308,7 +308,7 @@ class CampaignManagerConfig
         return true;
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -320,7 +320,7 @@ SCRIPT;
 \$_SESSION["test\$i"];
 \$_SESSION["test_\$i"];
 \$_SESSION['test_\$i'];
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -328,7 +328,7 @@ SCRIPT;
 \$_SESSION["test\$i"];
 \$_SESSION["test_\$i"];
 \$_SESSION['test_\$i'];
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -352,7 +352,7 @@ class Foo {
         if(\$foo && \$bar) { echo "FUBAR"; }
     }
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -366,7 +366,7 @@ class Foo
         }
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -401,7 +401,7 @@ echo '2';
 break;
 }
 echo 1;
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -422,7 +422,7 @@ switch (1) {
     break;
 }
 echo 1;
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -432,13 +432,13 @@ SCRIPT;
         $sText = <<<SCRIPT
 <?php
 \$field->createElement(\$form, \$this->_table->{\$field->id}, \$defaults);
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 \$field->createElement(\$form, \$this->_table->{\$field->id}, \$defaults);
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -452,11 +452,11 @@ SCRIPT;
         if(ini_get("short_open_tag")) {
         $this->oBeaut->addFilter("Pear");
         $sText = <<<SCRIPT
-<?= \$var ?>
+<?= \$var 
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
-<?php echo \$var ?>
+<?php echo \$var 
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
         } else {
@@ -488,7 +488,7 @@ class test {
 }
 function f1() {
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -512,7 +512,7 @@ class test {
 }
 function f1() {
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -536,7 +536,7 @@ while (++\$i) {
         break;
     }
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -554,7 +554,7 @@ while (++\$i) {
         break;
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -579,7 +579,7 @@ while (++\$i) {
         break;
     }
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -597,7 +597,7 @@ while (++\$i) {
         break;
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -609,13 +609,13 @@ SCRIPT;
         $sText = <<<SCRIPT
 <?php
 echo (1.0 . " " . 2 . 3);
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 echo (1.0 . " " . 2 . 3);
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -642,7 +642,7 @@ class test
     }
 
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -655,7 +655,7 @@ class test {
         echo \$otherclass->var;
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -702,7 +702,7 @@ strlen(\$user_password) < \$minpass) {
             die();
 
         }
-?>
+
 SCRIPT;
 
 $this->setText($sText);
@@ -725,7 +725,7 @@ if (empty(\$user_password) AND empty(\$user_password2)) {
     include_once ('footer.php');
     die();
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -748,7 +748,7 @@ echo "This works: {$arr[foo][3]}";
 echo "This works: " . $arr["foo"][3];
 echo "You can even write {$obj->values[3]->name}";
 // echo "This is the value of the var named $name: {${$name}}";
-?>';
+';
             $this->setText($sText);
             $sExpected = '<?php
 $great = "fantastic";
@@ -762,7 +762,7 @@ echo "This works: {$arr[foo][3]}";
 echo "This works: " . $arr["foo"][3];
 echo "You can even write {$obj->values[3]->name}";
 // echo "This is the value of the var named $name: {${$name}}";
-?>';
+';
             $this->assertEquals($sExpected, $this->oBeaut->get());
         }
         catch(Exception $oExp) {
@@ -780,13 +780,13 @@ echo "You can even write {$obj->values[3]->name}";
         $sText = <<<SCRIPT
 <?php
 \$html_on = ( \$submit || \$refresh ) ? ((!empty(\$HTTP_POST_VARS['disable_html'])) ? 0 : TRUE ):\$userdata['user_allowhtml'];
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 \$html_on = (\$submit || \$refresh) ? ((!empty(\$HTTP_POST_VARS['disable_html'])) ? 0 : TRUE) : \$userdata['user_allowhtml'];
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -805,7 +805,7 @@ SCRIPT;
 <?php
 function example(){
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -813,7 +813,7 @@ SCRIPT;
 function example()
 {
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -832,7 +832,7 @@ function example()
 {
     \$this->{\$method}();
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -841,7 +841,7 @@ function example()
 {
     \$this->{\$method}();
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -852,14 +852,14 @@ SCRIPT;
     {
         $this->oBeaut->addFilter("IndentStyles");
         $sText = <<<SCRIPT
-<?php if (true){echo 'a';}else echo 'b'; ?>
+<?php if (true){echo 'a';}else echo 'b'; 
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php if (true) {
     echo 'a';
 }
-else echo 'b'; ?>
+else echo 'b'; 
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -880,7 +880,7 @@ default:
 defaultaction();
 break;
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -898,7 +898,7 @@ default:
     defaultaction();
     break;
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -920,7 +920,7 @@ class test
 }
 }
 */
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -937,7 +937,7 @@ class test
 }
 }
 */
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -951,7 +951,7 @@ func( <<<END
 enctype="multipart/form-data">
 END
 );
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -961,7 +961,7 @@ func(<<<END
 enctype="multipart/form-data">
 END
 );
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -981,7 +981,7 @@ break;
 default:
 break;
 }
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -997,7 +997,7 @@ case 'one':
 default:
     break;
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -1009,7 +1009,7 @@ function testBug14459()
 echo "Curly {Hello}.";
 echo "Curly {{\$bye}}.";
 echo "Curly {". \$bye ."}.";
-?>
+
 SCRIPT;
         $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -1018,7 +1018,7 @@ SCRIPT;
 echo "Curly {Hello}.";
 echo "Curly {{\$bye}}.";
 echo "Curly {" . \$bye . "}.";
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -1031,7 +1031,7 @@ SCRIPT;
         $sText = <<<SCRIPT
 <?php
 IF (\$a OR \$b) { echo 'foo'; } ELSE IF (\$b AND \$c AND \$d) { echo 'bar'; }
-?>
+
 SCRIPT;
 $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -1041,7 +1041,7 @@ if (\$a or \$b) {
 } else if (\$b and \$c and \$d) {
     echo 'bar';
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -1056,14 +1056,14 @@ SCRIPT;
 <?php
 \$a==FALSE;
 \$b==TRUE;
-?>
+
 SCRIPT;
 $this->setText($sText);
         $sExpected = <<<SCRIPT
 <?php
 \$a == false;
 \$b == true;
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
@@ -1079,7 +1079,7 @@ SCRIPT;
             $sText = <<<SCRIPT
 <?php
 namespace MyTestnamespace\someSubNS; use OtherNamespace\ClassA; use AnotherNamespace\Class1 as Class2; 
-?>
+
 SCRIPT;
             $this->setText($sText);
         $sExpected = <<<SCRIPT
@@ -1087,7 +1087,7 @@ SCRIPT;
 namespace MyTestnamespace\someSubNS;
 use OtherNamespace\ClassA;
 use AnotherNamespace\Class1 as Class2;
-?>
+
 SCRIPT;
             $this->assertEquals($sExpected, $this->oBeaut->get());
         } else {
@@ -1111,7 +1111,7 @@ class Z {
         echo "hi";
     }
 }
-?>
+
 SCRIPT;
 $this->oBeaut->addFilter('BBY');
 $this->setText($sText);
@@ -1129,10 +1129,9 @@ class Z {
         echo "hi";
     }
 }
-?>
+
 SCRIPT;
         $this->assertEquals($sExpected, $this->oBeaut->get());
     }
     
 }
-?>
