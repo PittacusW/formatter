@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
 
 class Business extends Model {
+
 	use Notifiable;
 
 	public static $snakeAttributes = false;
@@ -38,13 +39,11 @@ class Business extends Model {
 	protected $casts = ['activo' => 'int'];
 
 	public function plans() {
-		return $this->belongsToMany(Plan::
-				class, 'modulos_empresas', 'idEmpresas', 'idModulosPlanes');
+		return $this->belongsToMany(Plan::class, 'modulos_empresas', 'idEmpresas', 'idModulosPlanes');
 	}
 
 	public function certifications() {
-		return $this->belongsToMany(Certification::
-				class, 'certificaciones_empresas', 'idEmpresas', 'idModulosCertificaciones')->withPivot('trackId', 'status');
+		return $this->belongsToMany(Certification::class, 'certificaciones_empresas', 'idEmpresas', 'idModulosCertificaciones')->withPivot('trackId', 'status');
 	}
 
 	protected static function boot() {

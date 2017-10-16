@@ -5,1096 +5,828 @@ namespace Contal;
 use Contal\Beautifier\BeautifierInterface;
 use Contal\Beautifier\Common;
 use Contal\Beautifier\Filter;
-use Contal\Beautifier\StreamWrapper;
-use Contal\Beautifier\ExceptionFilter;
+use Contal\Beautifier\Filter\FilterArrayNested;
 use Contal\Beautifier\Filter\FilterDefault;
 use Contal\Beautifier\Filter\FilterEqualsAlign;
 use Contal\Beautifier\Filter\FilterIndentStyles;
-use Contal\Beautifier\Filter\FilterArrayNested;
 use Contal\Beautifier\Filter\FilterNewLines;
 
 if (!extension_loaded('tokenizer')) {
-    throw new Exception("Compile php with tokenizer extension. Use --enable-tokenizer or don't use --disable-all on configure.");
+	throw new Exception("Compile php with tokenizer extension. Use --enable-tokenizer or don't use --disable-all on configure.");
 }
-
-define('STDIN',  fopen('php://stdin',  'r'));
+define('STDIN', fopen('php://stdin', 'r'));
 define('STDOUT', fopen('php://stdout', 'w'));
 define('STDERR', fopen('php://stderr', 'w'));
-
 class Beautifier implements BeautifierInterface {
-	
 	public $aTokens = array();
-    public $aTokenFunctions = array();
-    public $aTokenNames = Array();
-    public $aOut = array();
-    public $aModes = array();
-    public $aModesAvailable = array(
-        'ternary_operator',
-        'double_quote'
-    );
-    public $aSettings = array();
-    public $iCount = 0;
-    public $iIndentNumber = 4;
-    public $iArray = 0;
-    public $iTernary = 0;    
-    public $iParenthesis = 0;
-    public $iVerbose = false;
-    public $sInputFile = '';
-    public $sOutputFile = '';
-    public $sNewLine = PHP_EOL;
-    public $sIndentChar = ' ';
-    public $currentWhitespace = '';
-    public $aAssocs = array();
-    public $aCurrentToken = array();
-    private $sFileType = 'php';
-    private $iIndent = 0;
-    private $aIndentStack = array();
-    private $sText = '';
-    private $iControlLast;
-    private $aFilters = array();
-    private $aControlSeq = array();
-    private $aControlStructures = array();
-    private $aControlParenthesis = array();
-    private $aControlStructuresEnd = array();
-    private $aFilterDirs = array();
-    private $bBeautify = true;
-    private $oLog;
-    private $sBeforeNewLine = null;
-    private $bNdps = false;
-    private $doWhileBeginEnd;
-    
-    public function __construct() {
-        $this->aControlStructures = array(
-            T_CLASS,
-            T_FUNCTION,
-            T_IF,
-            T_ELSE,
-            T_ELSEIF,
-            T_WHILE,
-            T_DO,
-            T_FOR,
-            T_FOREACH,
-            T_SWITCH,
-            T_DECLARE,
-            T_TRY,
-            T_CATCH
-        );
-        $this->aControlStructuresEnd = array(
-            T_ENDWHILE,
-            T_ENDFOREACH,
-            T_ENDFOR,
-            T_ENDDECLARE,
-            T_ENDSWITCH,
-            T_ENDIF
-        );
-        $aPreTokens = preg_grep('/^T_/', array_keys(get_defined_constants()));
-        foreach($aPreTokens as $sToken) {
-            $this->aTokenNames[constant($sToken) ] = $sToken;
-            $this->aTokenFunctions[constant($sToken) ] = $sToken;
-        }
-        $aTokensToChange = array(
-            '"' => "T_DOUBLE_QUOTE",
-            "'" => "T_SINGLE_QUOTE",
-            '(' => 'T_PARENTHESIS_OPEN',
-            ')' => 'T_PARENTHESIS_CLOSE',
-            ';' => 'T_SEMI_COLON',
-            '{' => 'T_OPEN_BRACE',
-            '}' => 'T_CLOSE_BRACE',
-            ',' => 'T_COMMA',
-            '?' => 'T_QUESTION',
-            ':' => 'T_COLON',
-            '=' => 'T_ASSIGMENT',
-            '<' => 'T_EQUAL',
-            '>' => 'T_EQUAL',
-            '.' => 'T_DOT',
-            '[' => 'T_OPEN_SQUARE_BRACE',
-            ']' => 'T_CLOSE_SQUARE_BRACE',
-            '+' => 'T_OPERATOR',
-            '-' => 'T_OPERATOR',
-            '*' => 'T_OPERATOR',
-            '/' => 'T_OPERATOR',
-            '%' => 'T_OPERATOR',
-            '&' => 'T_OPERATOR',
-            '|' => 'T_OPERATOR',
-            '^' => 'T_OPERATOR',
-            '~' => 'T_OPERATOR',
-            '!' => 'T_OPERATOR_NEGATION',
-            T_SL => 'T_OPERATOR',
-            T_SR => 'T_OPERATOR',
-            T_OBJECT_OPERATOR => 'T_OBJECT_OPERATOR',
-            T_INCLUDE => 'T_INCLUDE',
-            T_INCLUDE_ONCE => 'T_INCLUDE',
-            T_REQUIRE => 'T_INCLUDE',
-            T_REQUIRE_ONCE => 'T_INCLUDE',
-            T_FUNCTION => 'T_LANGUAGE_CONSTRUCT',
-            T_PRINT => 'T_LANGUAGE_CONSTRUCT',
-            T_RETURN => 'T_LANGUAGE_CONSTRUCT',
-            T_ECHO => 'T_LANGUAGE_CONSTRUCT',
-            T_NEW => 'T_LANGUAGE_CONSTRUCT',
-            T_CLASS => 'T_LANGUAGE_CONSTRUCT',
-            T_VAR => 'T_LANGUAGE_CONSTRUCT',
-            T_GLOBAL => 'T_LANGUAGE_CONSTRUCT',
-            T_THROW => 'T_LANGUAGE_CONSTRUCT',
-            T_IF => 'T_CONTROL',
-            T_DO => 'T_CONTROL',
-            T_WHILE => 'T_CONTROL',
-            T_SWITCH => 'T_CONTROL',
-            T_ELSEIF => 'T_ELSE',
-            T_ELSE => 'T_ELSE',
-            T_INTERFACE => 'T_ACCESS',
-            T_FINAL => 'T_ACCESS',
-            T_ABSTRACT => 'T_ACCESS',
-            T_PRIVATE => 'T_ACCESS',
-            T_PUBLIC => 'T_ACCESS',
-            T_PROTECTED => 'T_ACCESS',
-            T_CONST => 'T_ACCESS',
-            T_STATIC => 'T_ACCESS',
-            T_PLUS_EQUAL => 'T_ASSIGMENT_PRE',
-            T_MINUS_EQUAL => 'T_ASSIGMENT_PRE',
-            T_MUL_EQUAL => 'T_ASSIGMENT_PRE',
-            T_DIV_EQUAL => 'T_ASSIGMENT_PRE',
-            T_CONCAT_EQUAL => 'T_ASSIGMENT_PRE',
-            T_MOD_EQUAL => 'T_ASSIGMENT_PRE',
-            T_AND_EQUAL => 'T_ASSIGMENT_PRE',
-            T_OR_EQUAL => 'T_ASSIGMENT_PRE',
-            T_XOR_EQUAL => 'T_ASSIGMENT_PRE',
-            T_DOUBLE_ARROW => 'T_ASSIGMENT',
-            T_SL_EQUAL => 'T_EQUAL',
-            T_SR_EQUAL => 'T_EQUAL',
-            T_IS_EQUAL => 'T_EQUAL',
-            T_IS_NOT_EQUAL => 'T_EQUAL',
-            T_IS_IDENTICAL => 'T_EQUAL',
-            T_IS_NOT_IDENTICAL => 'T_EQUAL',
-            T_IS_SMALLER_OR_EQUAL => 'T_EQUAL',
-            T_IS_GREATER_OR_EQUAL => 'T_EQUAL',
-            /* LOGICAL*/
-            T_LOGICAL_OR => 'T_LOGICAL',
-            T_LOGICAL_XOR => 'T_LOGICAL',
-            T_LOGICAL_AND => 'T_LOGICAL',
-            T_BOOLEAN_OR => 'T_LOGICAL',
-            T_BOOLEAN_AND => 'T_LOGICAL',
-            /* SUFIX END */
-            T_ENDWHILE => 'T_END_SUFFIX',
-            T_ENDFOREACH => 'T_END_SUFFIX',
-            T_ENDFOR => 'T_END_SUFFIX',
-            T_ENDDECLARE => 'T_END_SUFFIX',
-            T_ENDSWITCH => 'T_END_SUFFIX',
-            T_ENDIF => 'T_END_SUFFIX',
-            // for PHP 5.3
-            T_NAMESPACE => 'T_INCLUDE', 
-            T_USE => 'T_INCLUDE', 
-        );
-        foreach($aTokensToChange as $iToken => $sFunction) {
-            $this->aTokenFunctions[$iToken] = $sFunction;
-        }
-    }
-	
+	public $aTokenFunctions = array();
+	public $aTokenNames = Array();
+	public $aOut = array();
+	public $aModes = array();
+	public $aModesAvailable = array(
+		'ternary_operator',
+		'double_quote',
+	);
+	public $aSettings = array();
+	public $iCount = 0;
+	public $iIndentNumber = 4;
+	public $iArray = 0;
+	public $iTernary = 0;
+	public $iParenthesis = 0;
+	public $iVerbose = false;
+	public $sInputFile = '';
+	public $sOutputFile = '';
+	public $sNewLine = PHP_EOL;
+	public $sIndentChar = ' ';
+	public $currentWhitespace = '';
+	public $aAssocs = array();
+	public $aCurrentToken = array();
+	private $sFileType = 'php';
+	private $iIndent = 0;
+	private $aIndentStack = array();
+	private $sText = '';
+	private $iControlLast;
+	private $aFilters = array();
+	private $aControlSeq = array();
+	private $aControlStructures = array();
+	private $aControlParenthesis = array();
+	private $aControlStructuresEnd = array();
+	private $aFilterDirs = array();
+	private $bBeautify = true;
+	private $oLog;
+	private $sBeforeNewLine = null;
+	private $bNdps = false;
+	private $doWhileBeginEnd;
+	public function __construct() {
+		$this->aControlStructures = array(
+			T_CLASS,
+			T_FUNCTION,
+			T_IF,
+			T_ELSE,
+			T_ELSEIF,
+			T_WHILE,
+			T_DO,
+			T_FOR,
+			T_FOREACH,
+			T_SWITCH,
+			T_DECLARE,
+			T_TRY,
+			T_CATCH,
+		);
+		$this->aControlStructuresEnd = array(
+			T_ENDWHILE,
+			T_ENDFOREACH,
+			T_ENDFOR,
+			T_ENDDECLARE,
+			T_ENDSWITCH,
+			T_ENDIF,
+		);
+		$aPreTokens = preg_grep('/^T_/', array_keys(get_defined_constants()));
+		foreach ($aPreTokens as $sToken) {
+			$this->aTokenNames[constant($sToken)] = $sToken;
+			$this->aTokenFunctions[constant($sToken)] = $sToken;
+		}
+		$aTokensToChange = array(
+			'"' => "T_DOUBLE_QUOTE",
+			"'" => "T_SINGLE_QUOTE",
+			'(' => 'T_PARENTHESIS_OPEN',
+			')' => 'T_PARENTHESIS_CLOSE',
+			';' => 'T_SEMI_COLON',
+			'{' => 'T_OPEN_BRACE',
+			'}' => 'T_CLOSE_BRACE',
+			',' => 'T_COMMA',
+			'?' => 'T_QUESTION',
+			':' => 'T_COLON',
+			'=' => 'T_ASSIGMENT',
+			'<' => 'T_EQUAL',
+			'>' => 'T_EQUAL',
+			'.' => 'T_DOT',
+			'[' => 'T_OPEN_SQUARE_BRACE',
+			']' => 'T_CLOSE_SQUARE_BRACE',
+			'+' => 'T_OPERATOR',
+			'-' => 'T_OPERATOR',
+			'*' => 'T_OPERATOR',
+			'/' => 'T_OPERATOR',
+			'%' => 'T_OPERATOR',
+			'&' => 'T_OPERATOR',
+			'|' => 'T_OPERATOR',
+			'^' => 'T_OPERATOR',
+			'~' => 'T_OPERATOR',
+			'!' => 'T_OPERATOR_NEGATION',
+			T_SL => 'T_OPERATOR',
+			T_SR => 'T_OPERATOR',
+			T_OBJECT_OPERATOR => 'T_OBJECT_OPERATOR',
+			T_INCLUDE => 'T_INCLUDE',
+			T_INCLUDE_ONCE => 'T_INCLUDE',
+			T_REQUIRE => 'T_INCLUDE',
+			T_REQUIRE_ONCE => 'T_INCLUDE',
+			T_FUNCTION => 'T_LANGUAGE_CONSTRUCT',
+			T_PRINT => 'T_LANGUAGE_CONSTRUCT',
+			T_RETURN => 'T_LANGUAGE_CONSTRUCT',
+			T_ECHO => 'T_LANGUAGE_CONSTRUCT',
+			T_NEW => 'T_LANGUAGE_CONSTRUCT',
+			T_CLASS => 'T_LANGUAGE_CONSTRUCT',
+			T_VAR => 'T_LANGUAGE_CONSTRUCT',
+			T_GLOBAL => 'T_LANGUAGE_CONSTRUCT',
+			T_THROW => 'T_LANGUAGE_CONSTRUCT',
+			T_IF => 'T_CONTROL',
+			T_DO => 'T_CONTROL',
+			T_WHILE => 'T_CONTROL',
+			T_SWITCH => 'T_CONTROL',
+			T_ELSEIF => 'T_ELSE',
+			T_ELSE => 'T_ELSE',
+			T_INTERFACE => 'T_ACCESS',
+			T_FINAL => 'T_ACCESS',
+			T_ABSTRACT => 'T_ACCESS',
+			T_PRIVATE => 'T_ACCESS',
+			T_PUBLIC => 'T_ACCESS',
+			T_PROTECTED => 'T_ACCESS',
+			T_CONST => 'T_ACCESS',
+			T_STATIC => 'T_ACCESS',
+			T_PLUS_EQUAL => 'T_ASSIGMENT_PRE',
+			T_MINUS_EQUAL => 'T_ASSIGMENT_PRE',
+			T_MUL_EQUAL => 'T_ASSIGMENT_PRE',
+			T_DIV_EQUAL => 'T_ASSIGMENT_PRE',
+			T_CONCAT_EQUAL => 'T_ASSIGMENT_PRE',
+			T_MOD_EQUAL => 'T_ASSIGMENT_PRE',
+			T_AND_EQUAL => 'T_ASSIGMENT_PRE',
+			T_OR_EQUAL => 'T_ASSIGMENT_PRE',
+			T_XOR_EQUAL => 'T_ASSIGMENT_PRE',
+			T_DOUBLE_ARROW => 'T_ASSIGMENT',
+			T_SL_EQUAL => 'T_EQUAL',
+			T_SR_EQUAL => 'T_EQUAL',
+			T_IS_EQUAL => 'T_EQUAL',
+			T_IS_NOT_EQUAL => 'T_EQUAL',
+			T_IS_IDENTICAL => 'T_EQUAL',
+			T_IS_NOT_IDENTICAL => 'T_EQUAL',
+			T_IS_SMALLER_OR_EQUAL => 'T_EQUAL',
+			T_IS_GREATER_OR_EQUAL => 'T_EQUAL',
+			T_LOGICAL_OR => 'T_LOGICAL',
+			T_LOGICAL_XOR => 'T_LOGICAL',
+			T_LOGICAL_AND => 'T_LOGICAL',
+			T_BOOLEAN_OR => 'T_LOGICAL',
+			T_BOOLEAN_AND => 'T_LOGICAL',
+			T_ENDWHILE => 'T_END_SUFFIX',
+			T_ENDFOREACH => 'T_END_SUFFIX',
+			T_ENDFOR => 'T_END_SUFFIX',
+			T_ENDDECLARE => 'T_END_SUFFIX',
+			T_ENDSWITCH => 'T_END_SUFFIX',
+			T_ENDIF => 'T_END_SUFFIX',
+			T_NAMESPACE => 'T_INCLUDE',
+			T_USE => 'T_INCLUDE',
+		);
+		foreach ($aTokensToChange as $iToken => $sFunction) {
+			$this->aTokenFunctions[$iToken] = $sFunction;
+		}
+	}
 	public function EqualsAlign() {
 		$filter = new FilterEqualsAlign($this, []);
 		$this->addFilterObject($filter);
 	}
-
-	public function Default() {
+	public function
+Default() {
 		$filter = new FilterDefault($this, []);
 		$this->addFilterObject($filter);
 	}
-
 	public function IndentStyles($opt) {
 		$filter = new FilterIndentStyles($this, $opt);
 		$this->addFilterObject($filter);
 	}
-
 	public function ArrayNested() {
 		$filter = new FilterArrayNested($this, []);
 		$this->addFilterObject($filter);
 	}
-
 	public function NewLines($opt) {
 		$filter = new FilterNewLines($this, $opt);
 		$this->addFilterObject($filter);
 	}
-
 	public function getTokenName($iToken) {
-        if(!$iToken) {
-            throw new Exception("Token $iToken doesn't exists");
-        }
-        return $this->aTokenNames[$iToken];
-    }
 
-    public function addFilterObject(Filter $oFilter) {
-        array_unshift($this->aFilters, $oFilter);
-        return true;
-    }
-
+		if (!$iToken) {
+			throw new Exception("Token $iToken doesn't exists");
+		}
+		return $this->aTokenNames[$iToken];
+	}
+	public function addFilterObject(Filter $oFilter) {
+		array_unshift($this->aFilters, $oFilter);
+		return true;
+	}
 	public function removeFilter($sFilter) {
-        $sFilterName = strtolower('Filter' . $sFilter);
-        foreach($this->aFilters as $sId => $oFilter) {
-            if (strtolower(get_class($oFilter)) == $sFilterName) {
-                unset($this->aFilters[$sId]);
-                return true;
-            }
-        }
-        return false;
-    }
+		$sFilterName = strtolower('Filter' . $sFilter);
+		foreach ($this->aFilters as $sId => $oFilter) {
 
+			if (strtolower(get_class($oFilter)) == $sFilterName) {
+				unset($this->aFilters[$sId]);
+				return true;
+			}
+		}
+		return false;
+	}
 	public function getFilterDescription($sFilter) {
-        $aFilters = $this->getFilterListTotal();
-        if (in_array($sFilter, $aFilters)) {
-            $this->addFilterFile($sFilter);
-            $sFilterClass = 'Filter' . $sFilter;
-            $oTemp = new $sFilterClass($this, array());
-            return $oTemp;
-        } else {
-            return false;
-        }
-    }
+		$aFilters = $this->getFilterListTotal();
 
-    public function getFilterList() {
-        foreach($this->aFilters as $oFilter) {
-            $aOut[] = $oFilter->getName();
-        }
-        return $aOut;
-    }
+		if (in_array($sFilter, $aFilters)) {
+			$this->addFilterFile($sFilter);
+			$sFilterClass = 'Filter' . $sFilter;
+			$oTemp = new $sFilterClass($this, array());
+			return $oTemp;
+		} else {
+			return false;
+		}
+	}
+	public function getFilterList() {
+		foreach ($this->aFilters as $oFilter) {
+			$aOut[] = $oFilter->getName();
+		}
+		return $aOut;
+	}
+	public function getIndentChar() {
+		return $this->sIndentChar;
+	}
+	public function getIndentNumber() {
+		return $this->iIndentNumber;
+	}
+	public function getIndent() {
+		return $this->iIndent;
+	}
+	public function getNewLine() {
+		return $this->sNewLine;
+	}
+	public function setIndentChar($sChar) {
+		$this->sIndentChar = $sChar;
+	}
+	public function setIndentNumber($iIndentNumber) {
+		$this->iIndentNumber = $iIndentNumber;
+	}
+	public function setNewLine($sNewLine) {
+		$this->sNewLine = $sNewLine;
+	}
+	public function setInputFile($sFile) {
+		$this->sText = '';
+		$this->sInputFile = $sFile;
+		$fp = STDIN;
+		do {
+			$data = fread($fp, 8192);
 
-    public function getIndentChar() {
-        return $this->sIndentChar;
-    }
-    public function getIndentNumber() {
-        return $this->iIndentNumber;
-    }
-    public function getIndent() {
-        return $this->iIndent;
-    }
-    public function getNewLine() {
-        return $this->sNewLine;
-    }
-    public function setIndentChar($sChar) {
-        $this->sIndentChar = $sChar;
-    }
-    public function setIndentNumber($iIndentNumber) {
-        $this->iIndentNumber = $iIndentNumber;
-    }
-    public function setNewLine($sNewLine) {
-        $this->sNewLine = $sNewLine;
-    }
-    public function setInputFile($sFile) {
-        $this->sText = '';
-        $this->sInputFile = $sFile;
-        $fp = STDIN;
-        do {
-            $data = fread($fp, 8192);
-            if (strlen($data) == 0) {
-                break;
-            }
-            $this->sText.= $data;
-        }
-        while (true);
-        return true;
-    }
-    public function setOutputFile($sFile) {
-        $this->sOutputFile = $sFile;
-    }
-
+			if (strlen($data) == 0) {
+				break;
+			}
+			$this->sText .= $data;
+		} while (true);
+		return true;
+	}
+	public function setOutputFile($sFile) {
+		$this->sOutputFile = $sFile;
+	}
 	public function save($sFile = null) {
-        if (!$sFile) {
-            if (!$this->sOutputFile) {
-                throw new Exception("Can't save without a output file");
-            } else {
-                $sFile = $this->sOutputFile;
-            }
-        }
-        $sText = $this->get();
-        $fp = STDOUT;
-        if (!$fp) {
-            throw new Exception("Can't save file $sFile");
-        }
-        fputs($fp, $sText, strlen($sText));
-        return true;
-    }
-    public function setInputString($sText) {
-        $this->sText = $sText;
-    }
-    private function resetProperties() {
-        $aProperties = array(
-            'aTokens' => array() ,
-            'aOut' => array() ,
-            'aModes' => array() ,
-            'iCount' => 0,
-            'iIndent' => 0
-            /*$this->iIndentNumber*/
-            ,
-            'aIndentStack' => array(
-                /*$this->iIndentNumber*/
-            ) ,
-            'iArray' => 0,
-            'iParenthesis' => 0,
-            'currentWhitespace' => '',
-            'aAssocs' => array() ,
-            'iControlLast' => null,
-            'aControlSeq' => array() ,
-            'bBeautify' => true
-        );
-        foreach($aProperties as $sProperty => $sValue) {
-            $this->$sProperty = $sValue;
-        }
-    }
 
+		if (!$sFile) {
+
+			if (!$this->sOutputFile) {
+				throw new Exception("Can't save without a output file");
+			} else {
+				$sFile = $this->sOutputFile;
+			}
+		}
+		$sText = $this->get();
+		$fp = STDOUT;
+
+		if (!$fp) {
+			throw new Exception("Can't save file $sFile");
+		}
+		fputs($fp, $sText, strlen($sText));
+		return true;
+	}
+	public function setInputString($sText) {
+		$this->sText = $sText;
+	}
+	private function resetProperties() {
+		$aProperties = array(
+			'aTokens' => array(),
+			'aOut' => array(),
+			'aModes' => array(),
+			'iCount' => 0,
+			'iIndent' => 0,
+			'aIndentStack' => array(),
+			'iArray' => 0,
+			'iParenthesis' => 0,
+			'currentWhitespace' => '',
+			'aAssocs' => array(),
+			'iControlLast' => null,
+			'aControlSeq' => array(),
+			'bBeautify' => true,
+		);
+		foreach ($aProperties as $sProperty => $sValue) {
+			$this->$sProperty = $sValue;
+		}
+	}
 	public function process() {
-        $this->resetProperties();
-        if ($this->sFileType == 'php') {
-            $this->aTokens = token_get_all($this->sText);
-        } else {
-            $sClass = 'PHP_Beautifier_Tokenizer_' . ucfirst($this->sFileType);
-            if (class_exists($sClass)) {
-                $oTokenizer = new $sClass($this->sText);
-                $this->aTokens = $oTokenizer->getTokens();
-            } else {
-                throw new Exception("File type " . $this->sFileType . " not implemented");
-            }
-        }
-        $this->aOut = array();
-        $iTotal = count($this->aTokens);
-        $iPrevAssoc = false;
-        // Send a signal to the filter, announcing the init of the processing of a file
-        foreach($this->aFilters as $oFilter) {
-            $oFilter->preProcess();
-        }
-        for ($this->iCount = 0 ; $this->iCount < $iTotal ; $this->iCount++) {
-            $aCurrentToken = $this->aTokens[$this->iCount];
-            if (is_string($aCurrentToken)) {
-                $aCurrentToken = array(
-                    0 => $aCurrentToken,
-                    1 => $aCurrentToken
-                );
-            }
-            // ArrayNested->off();
-            $sTextLog = Common::wsToString($aCurrentToken[1]);
-            // ArrayNested->on();
-            $sTokenName = (is_numeric($aCurrentToken[0])) ? token_name($aCurrentToken[0]) : '';
-            $this->controlToken($aCurrentToken);
-            $iFirstOut = count($this->aOut); //5
-            $bError = false;
-            $this->aCurrentToken=$aCurrentToken;
-            if ($this->bBeautify) {
-                foreach($this->aFilters as $oFilter) {
-                    $bError = true;
-                    if ($oFilter->handleToken($this->aCurrentToken) !== FALSE) {
-                        $bError = false;
-                        break;
-                    }
-                }
-            } else {
-                $this->add($aCurrentToken[1]);
-            }
-            $this->controlTokenPost($aCurrentToken);
-            $iLastOut = count($this->aOut);
-            // set the assoc
-            if (($iLastOut-$iFirstOut) > 0) {
-                $this->aAssocs[$this->iCount] = array(
-                    'offset' => $iFirstOut
-                );
-                if ($iPrevAssoc !== FALSE) {
-                    $this->aAssocs[$iPrevAssoc]['length'] = $iFirstOut-$this->aAssocs[$iPrevAssoc]['offset'];
-                }
-                $iPrevAssoc = $this->iCount;
-            }
-            if ($bError) {
-                throw new Exception("Can'process token: " . var_dump($aCurrentToken));
-            }
-        } // ~for
-        // generate the last assoc
-        if (count($this->aOut) == 0) {
-            if ($this->sFile) {
-                throw new Exception("Nothing on output for " . $this->sFile . "!");
-            } else {
-                throw new Exception("Nothing on output!");
-            }
-        }
-        $this->aAssocs[$iPrevAssoc]['length'] = (count($this->aOut) -1) -$this->aAssocs[$iPrevAssoc]['offset'];
-        // Post-processing
-        foreach($this->aFilters as $oFilter) {
-            $oFilter->postProcess();
-        }
-        return true;
-    }
-    /**
-     * Get the reference to {@link $aOut}, based on the number of the token
-     * @param int token number
-     * @return mixed false array or false if token doesn't exists
-     */
-    public function getTokenAssoc($iIndex) 
-    {
-        return (array_key_exists($iIndex, $this->aAssocs)) ? $this->aAssocs[$iIndex] : false;
-    }
-    /**
-     * Get the output for the specified token
-     * @param int token number
-     * @return mixed string or false if token doesn't exists
-     */
-    public function getTokenAssocText($iIndex) 
-    {
-        if (!($aAssoc = $this->getTokenAssoc($iIndex))) {
-            return false;
-        }
-        return (implode('', array_slice($this->aOut, $aAssoc['offset'], $aAssoc['length'])));
-    }
-    /**
-     * Replace the output for specified token
-     * @param int     token number
-     * @param string  replace text
-     * @return bool
-     */
-    public function replaceTokenAssoc($iIndex, $sText) 
-    {
-        if (!($aAssoc = $this->getTokenAssoc($iIndex))) {
-            return false;
-        }
-        $this->aOut[$aAssoc['offset']] = $sText;
-        for ($x = 0 ; $x < $aAssoc['length']-1 ; $x++) {
-            $this->aOut[$aAssoc['offset']+$x+1] = '';
-        }
-        return true;
-    }
-    /**
-     * Return the function for a token constant or string.
-     * @param mixed  token constant or string
-     * @return mixed name of function or false
-     */
-    public function getTokenFunction($sTokenType) 
-    {
-        return (array_key_exists($sTokenType, $this->aTokenFunctions)) ? strtolower($this->aTokenFunctions[$sTokenType]) : false;
-    }
-    /**
-     * Process a callback from the code to beautify
-     * @param    array   third parameter from preg_match
-     * @return   bool
-     * @uses controlToken()
-     */
-    private function processCallback($aMatch) 
-    {
-        if (stristr('php_beautifier', $aMatch[1]) and method_exists($this, $aMatch[3])) {
-            if (preg_match("/^(set|add)/i", $aMatch[3]) and !stristr('file', $aMatch[3])) {
-                eval('$this->' . $aMatch[2] . ";");
-                return true;
-            }
-        } else {
-            foreach($this->aFilters as $iIndex => $oFilter) {
-                if (strtolower(get_class($oFilter)) == 'php_beautifier_filter_' . strtolower($aMatch[1]) and method_exists($oFilter, $aMatch[3])) {
-                    eval('$this->aFilters[' . $iIndex . ']->' . $aMatch[2] . ";");
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    /**
-     * Assign value for some variables with the information of the token
-     * @param array current token
-     */
-    private function controlToken($aCurrentToken) 
-    {
-        // is a control structure opener?
-        if (in_array($aCurrentToken[0], $this->aControlStructures)) {
-            $this->pushControlSeq($aCurrentToken);
-            $this->iControlLast = $aCurrentToken[0];
-        }
-        // is a control structure closer?
-        if (in_array($aCurrentToken[0], $this->aControlStructuresEnd)) {
-            $this->popControlSeq();
-        }
-        switch ($aCurrentToken[0]) {
-            case T_COMMENT:
-                // callback!
-                $aMatch=array();
-                if (preg_match("/\/\/\s*(.*?)->((.*)\((.*)\))/", $aCurrentToken[1], $aMatch)) {
-                    try {
-                        $this->processCallback($aMatch);
-                    }
-                    catch(Exception $oExp) {
-                    }
-                }
-                break;
+		$this->resetProperties();
 
-            case T_FUNCTION:
-                $this->setMode('function');
-                break;
+		if ($this->sFileType == 'php') {
+			$this->aTokens = token_get_all($this->sText);
+		} else {
+			$sClass = 'PHP_Beautifier_Tokenizer_' . ucfirst($this->sFileType);
 
-            case T_CLASS:
-                $this->setMode('class');
-                break;
+			if (class_exists($sClass)) {
+				$oTokenizer = new $sClass($this->sText);
+				$this->aTokens = $oTokenizer->getTokens();
+			} else {
+				throw new Exception("File type " . $this->sFileType . " not implemented");
+			}
+		}
+		$this->aOut = array();
+		$iTotal = count($this->aTokens);
+		$iPrevAssoc = false;
+		foreach ($this->aFilters as $oFilter) {
+			$oFilter->preProcess();
+		}
+		for ($this->iCount = 0; $this->iCount < $iTotal; $this->iCount++) {
+			$aCurrentToken = $this->aTokens[$this->iCount];
 
-            case T_ARRAY:
-                $this->iArray++;
-                break;
+			if (is_string($aCurrentToken)) {
+				$aCurrentToken = array(
+					0 => $aCurrentToken,
+					1 => $aCurrentToken,
+				);
+			}
+			$sTextLog = Common::wsToString($aCurrentToken[1]);
+			$sTokenName = (is_numeric($aCurrentToken[0])) ? token_name($aCurrentToken[0]) : '';
+			$this->controlToken($aCurrentToken);
+			$iFirstOut = count($this->aOut);
+			$bError = false;
+			$this->aCurrentToken = $aCurrentToken;
 
-            case T_WHITESPACE:
-                $this->currentWhitespace = $aCurrentToken[1];
-                break;
+			if ($this->bBeautify) {
+				foreach ($this->aFilters as $oFilter) {
+					$bError = true;
 
-            case '{':
-                if ($this->isPreviousTokenConstant(T_VARIABLE) or ($this->isPreviousTokenConstant(T_STRING) and $this->getPreviousTokenConstant(2) == T_OBJECT_OPERATOR) or $this->isPreviousTokenConstant(T_OBJECT_OPERATOR)) {
-                    $this->setMode('string_index');
-                }
-                break;
+					if ($oFilter->handleToken($this->aCurrentToken) !== FALSE) {
+						$bError = false;
+						break;
+					}
+				}
+			} else {
+				$this->add($aCurrentToken[1]);
+			}
+			$this->controlTokenPost($aCurrentToken);
+			$iLastOut = count($this->aOut);
 
-            case '(':
-                $this->iParenthesis++;
-                $this->pushControlParenthesis();
-                break;
+			if (($iLastOut - $iFirstOut) > 0) {
+				$this->aAssocs[$this->iCount] = array(
+					'offset' => $iFirstOut,
+				);
 
-            case ')':
-                $this->iParenthesis--;
-                break;
+				if ($iPrevAssoc !== FALSE) {
+					$this->aAssocs[$iPrevAssoc]['length'] = $iFirstOut - $this->aAssocs[$iPrevAssoc]['offset'];
+				}
+				$iPrevAssoc = $this->iCount;
+			}
 
-            case '?':
-                $this->setMode('ternary_operator');
-                $this->iTernary++;
-                break;
+			if ($bError) {
+				throw new Exception("Can'process token: " . var_dump($aCurrentToken));
+			}
+		}
 
-            case '"':
-                ($this->getMode('double_quote')) ? $this->unsetMode('double_quote') : $this->setMode('double_quote');
-                break;
+		if (count($this->aOut) == 0) {
 
-            case T_START_HEREDOC:
-                $this->setMode('double_quote');
-                break;
+			if ($this->sFile) {
+				throw new Exception("Nothing on output for " . $this->sFile . "!");
+			} else {
+				throw new Exception("Nothing on output!");
+			}
+		}
+		$this->aAssocs[$iPrevAssoc]['length'] = (count($this->aOut) - 1) - $this->aAssocs[$iPrevAssoc]['offset'];
+		foreach ($this->aFilters as $oFilter) {
+			$oFilter->postProcess();
+		}
+		return true;
+	}
+	public function getTokenAssoc($iIndex) {
+		return (array_key_exists($iIndex, $this->aAssocs)) ? $this->aAssocs[$iIndex] : false;
+	}
+	public function getTokenAssocText($iIndex) {
 
-            case T_END_HEREDOC:
-                $this->unsetMode('double_quote');
-                break;
-        }
-        if ($this->getTokenFunction($aCurrentToken[0]) == 't_include') {
-            $this->setMode('include');
-        }
-    }
-    /**
-     * Assign value for some variables with the information of the token, after processing
-     * @param array current token
-     */
-    private function controlTokenPost($aCurrentToken) 
-    {
-        switch ($aCurrentToken[0]) {
-            case ')':
-                if ($this->iArray) {
-                    $this->iArray--;
-                }
-                $this->popControlParenthesis();
-                break;
+		if (!($aAssoc = $this->getTokenAssoc($iIndex))) {
+			return false;
+		}
+		return (implode('', array_slice($this->aOut, $aAssoc['offset'], $aAssoc['length'])));
+	}
+	public function replaceTokenAssoc($iIndex, $sText) {
 
-            case '}':
-                if ($this->getMode('string_index')) {
-                    $this->unsetMode('string_index');
-                } else {
-                    $prevIndex = 1;
-                    while ($this->isPreviousTokenConstant(array(T_COMMENT, T_DOC_COMMENT), $prevIndex)) {
-                        $prevIndex ++;
-                    }
+		if (!($aAssoc = $this->getTokenAssoc($iIndex))) {
+			return false;
+		}
+		$this->aOut[$aAssoc['offset']] = $sText;
+		for ($x = 0; $x < $aAssoc['length'] - 1; $x++) {
+			$this->aOut[$aAssoc['offset'] + $x + 1] = '';
+		}
+		return true;
+	}
+	public function getTokenFunction($sTokenType) {
+		return (array_key_exists($sTokenType, $this->aTokenFunctions)) ? strtolower($this->aTokenFunctions[$sTokenType]) : false;
+	}
+	private function processCallback($aMatch) {
 
-                    
-                    if ($this->isPreviousTokenContent(array(';','}','{'), $prevIndex)) {
-                        if (end($this->aControlSeq)!=T_DO) {
-                            $this->popControlSeq();
-                        } else {
-                            $this->DoWhileBeginEnd=true;
-                        }
-                    }
-                }
-                break;
+		if (stristr('php_beautifier', $aMatch[1]) and method_exists($this, $aMatch[3])) {
 
-            case ';':
-                // If is a while in a do while structure
-                if (isset($this->aControlSeq) && (end($this->aControlSeq)==T_WHILE)) {
-                    $counter = 0;
-                    $openParenthesis = 0;
-                    do {
-                        $counter++;
-                        $prevToken = $this->getPreviousTokenContent($counter);
-                        if ($prevToken == "(") { $openParenthesis++; }
-                    } while($prevToken!="{" && $prevToken!="while");
-                    if ($prevToken=="while" && $openParenthesis==1) {
-                        if ($this->DoWhileBeginEnd) {
-                            $this->popControlSeq();
-                            $this->DoWhileBeginEnd=false;
-                        }
-                        $this->popControlSeq();
-                    }
-                }
-                break;
+			if (preg_match("/^(set|add)/i", $aMatch[3]) and !stristr('file', $aMatch[3])) {
+				eval('$this->' . $aMatch[2] . ";");
+				return true;
+			}
+		} else {
+			foreach ($this->aFilters as $iIndex => $oFilter) {
 
-            case '{':
-                $this->unsetMode('function');
-                break;
-        }
-        if ($this->getTokenFunction($aCurrentToken[0]) == 't_colon') {
-            if ($this->iTernary) {
-                    $this->iTernary--;
-            }
-            if(!$this->iTernary) {
-                $this->unsetMode('ternary_operator');
-            }
-        }
-    }
-    /**
-     * Push a control construct to the stack
-     * @param array current token
-     */
-    private function pushControlSeq($aToken) 
-    {
-        array_push($this->aControlSeq, $aToken[0]);
-    }
-    /**
-     * Pop a control construct from the stack
-     * @return int token constant
-     */
-    private function popControlSeq() 
-    {
-        $aEl = array_pop($this->aControlSeq);
-        return $aEl;
-    }
-    /**
-     * Push a new Control Instruction on the stack
-     */
-    private function pushControlParenthesis() 
-    {
-        $iPrevious = $this->getPreviousTokenConstant();
-        array_push($this->aControlParenthesis, $iPrevious);
-    }
-    /**
-     * Pop the last Control instruction for parenthesis from the stack
-     * @return int   constant
-     */
-    private function popControlParenthesis() 
-    {
-        $iPop = array_pop($this->aControlParenthesis);
-        return $iPop;
-    }
-    /**
-     * Set the filetype
-     * @param string
-     */
-    public function setFileType($sType) 
-    {
-        $this->sFileType = $sType;
-    }
-    /**
-     * Set the Beautifier on or off
-     * @param bool
-     */
-    public function setBeautify($sFlag) 
-    {
-        $this->bBeautify = (bool)$sFlag;
-    }
-    /**
-     * Show the beautified code
-     */
-    public function show() 
-    {
-        echo $this->get();
-    }
-    /**
-     * Activate or deactivate this ominous hack
-     * If you need to maintain some special whitespace
-     * you can activate this hack and use (delete the space between * and /)
-     * <code>/**ndps** /</code>
-     * in {@link get()}, this text will be erased.
-     * @see removeWhitespace()
-     * @see FilterNewLines
-     */
-    public function setNoDeletePreviousSpaceHack($bFlag = true) 
-    {
-        $this->bNdps = $bFlag;
-    }
-    /**
-     * Returns the beautified code
-     * @see setNoDeletePreviousSpaceHack()
-     * @return string
-     */
-    public function get() 
-    {
-        if (!$this->bNdps) {
-            return implode('', $this->aOut);
-        } else {
-            return str_replace('/**ndps**/', '', implode('', $this->aOut));
-        }
-    }
-    /**
-     * Returns the value of a settings
-     * @param string Name of the setting
-     * @return mixed Value of the settings or false
-     */
-    public function getSetting($sKey) 
-    {
-        return (array_key_exists($sKey, $this->aSettings)) ? $this->aSettings[$sKey] : false;
-    }
-    /**
-     * Get the token constant for the current control construct
-     * @param int   current token -'x'
-     *@ return mixed token constant or false
-     */
-    public function getControlSeq($iRet = 0) 
-    {
-        $iIndex = count($this->aControlSeq) -$iRet-1;
-        return ($iIndex >= 0) ? $this->aControlSeq[$iIndex] : false;
-    }
-    /**
-     * Get the token constant for the current Parenthesis
-     * @param int   current token -'x'
-     * @return mixed token constant or false
-     */
-    public function getControlParenthesis($iRet = 0) 
-    {
-        $iIndex = count($this->aControlParenthesis) -$iRet-1;
-        return ($iIndex >= 0) ? $this->aControlParenthesis[$iIndex] : false;
-    }
-    ////
-    // Mode methods
-    ////
-    
-    /**
-     * Set a mode to true
-     * @param string name of the mode
-     */
-    public function setMode($sKey) 
-    {
-        $this->aModes[$sKey] = true;
-    }
-    /**
-     * Set a mode to false
-     * @param string name of the mode
-     */
-    public function unsetMode($sKey) 
-    {
-        $this->aModes[$sKey] = false;
-    }
-    /**
-     * Get the state of a mode
-     * @param  string name of the mode
-     * @return bool
-     */
-    public function getMode($sKey) 
-    {
-        return array_key_exists($sKey, $this->aModes) ? $this->aModes[$sKey] : false;
-    }
-    /////
-    // Filter methods
-    /////
-    
-    /**
-     * Add a string to the output
-     * @param string
-     */
-    public function add($token) 
-    {
-        $this->aOut[] = $token;
-    }
-    /**
-     * Delete the last added output(s)
-     * @param int number of outputs to drop
-     * @deprecated
-     */
-    public function pop($iReps = 1) 
-    {
-        for ($x = 0 ; $x < $iReps ; $x++) {
-            $sLast = array_pop($this->aOut);
-        }
-        return $sLast;
-    }
-    /**
-     * Add Indent to the output
-     * @see $sIndentChar
-     * @see $iIndentNumber
-     * @see $iIndent
-     */
-    public function addIndent() 
-    {
-        $this->aOut[] = str_repeat($this->sIndentChar, $this->iIndent);
-    }
-    /**
-     * Set a string to put before a new line
-     * You could use this to put a standard comment after some sentences
-     * or to add extra newlines
-     */
-    public function setBeforeNewLine($sText) 
-    {
-        $this->sBeforeNewLine = $sText;
-    }
-    /**
-     * Add a new line to the output
-     * @see $sNewLine
-     */
-    public function addNewLine() 
-    {
-        if (!is_null($this->sBeforeNewLine)) {
-            $this->aOut[] = $this->sBeforeNewLine;
-            $this->sBeforeNewLine = null;
-        }
-        $this->aOut[] = $this->sNewLine;
-    }
-    /**
-     * Add a new line and a indent to output
-     * @see $sIndentChar
-     * @see $iIndentNumber
-     * @see $iIndent
-     * @see $sNewLine
-     */
-    public function addNewLineIndent() 
-    {
-        if (!is_null($this->sBeforeNewLine)) {
-            $this->aOut[] = $this->sBeforeNewLine;
-            $this->sBeforeNewLine = null;
-        }
-        $this->aOut[] = $this->sNewLine;
-        $this->aOut[] = str_repeat($this->sIndentChar, $this->iIndent);
-    }
-    /**
-     * Increments the indent in X chars.
-     * If param omitted, used {@link iIndentNumber }
-     * @param    int increment indent in x chars
-     */
-    public function incIndent($iIncr = false) 
-    {
-        if (!$iIncr) {
-            $iIncr = $this->iIndentNumber;
-        }
-        array_push($this->aIndentStack, $iIncr);
-        $this->iIndent+= $iIncr;
-    }
-    /**
-     * Decrements the indent.
-     */
-    public function decIndent() 
-    {
-        if (count($this->aIndentStack > 1)) {
-            $iLastIndent = array_pop($this->aIndentStack);
-            $this->iIndent-= $iLastIndent;
-        }
-    }
-    //
-    ////
-    // Methods to lookup previous, next tokens
-    ////
-    //
-    
-    /**
-     * Get the 'x' significant (non whitespace)previous token
-     * @param  int   current-x token
-     * @return mixed array or false
-     */
-    private function getPreviousToken($iPrev = 1) 
-    {
-        for ($x = $this->iCount-1 ; $x >= 0 ; $x--) {
-            $aToken = &$this->getToken($x);
-            if ($aToken[0] != T_WHITESPACE) {
-                $iPrev--;
-                if (!$iPrev) {
-                    return $aToken;
-                }
-            }
-        }
-    }
-    /**
-     * Get the 'x' significant (non whitespace) next token
-     * @param  int   current+x token
-     * @return array
-     */
-    private function getNextToken($iNext = 1) 
-    {
-        for ($x = $this->iCount+1 ; $x < (count($this->aTokens) -1) ; $x++) {
-            $aToken = &$this->getToken($x);
-            if ($aToken[0] != T_WHITESPACE) {
-                $iNext--;
-                if (!$iNext) {
-                    return $aToken;
-                }
-            }
-        }
-    }
-    /**
-     * Return true if any of the constant defined is param 1 is the previous 'x' constant
-     * @param    mixed int (constant) or array of constants
-     * @return   bool
-     */
-    public function isPreviousTokenConstant($mValue, $iPrev = 1) 
-    {
-        if (!is_array($mValue)) {
-            $mValue = array(
-                $mValue
-            );
-        }
-        $iPrevious = $this->getPreviousTokenConstant($iPrev);
-        return in_array($iPrevious, $mValue);
-    }
-    /**
-     * Return true if any of the content defined is param 1 is the previous 'x' content
-     * @param    mixed string (content) or array of contents
-     * @return   bool
-     */
-    public function isPreviousTokenContent($mValue, $iPrev = 1) 
-    {
-        if (!is_array($mValue)) {
-            $mValue = array(
-                $mValue
-            );
-        }
-        $iPrevious = $this->getPreviousTokenContent($iPrev);
-        return in_array($iPrevious, $mValue);
-    }
-    /**
-     * Return true if any of the constant defined in param 1 is the next 'x' content
-     * @param    mixed int (constant) or array of constants
-     * @return   bool
-     */
-    public function isNextTokenConstant($mValue, $iPrev = 1) 
-    {
-        if (!is_array($mValue)) {
-            $mValue = array(
-                $mValue
-            );
-        }
-        $iNext = $this->getNextTokenConstant($iPrev);
-        return in_array($iNext, $mValue);
-    }
-    /**
-     * Return true if any of the content defined is param 1 is the next 'x' content
-     * @param    mixed string (content) or array of contents
-     * @return   bool
-     */
-    public function isNextTokenContent($mValue, $iPrev = 1) 
-    {
-        if (!is_array($mValue)) {
-            $mValue = array(
-                $mValue
-            );
-        }
-        $iNext = $this->getNextTokenContent($iPrev);
-        return in_array($iNext, $mValue);
-    }
-    /**
-     * Get the 'x' significant (non whitespace) previous token constant
-     * @param  int   current-x token
-     * @return int
-     */
-    public function getPreviousTokenConstant($iPrev = 1) 
-    {
-        $sToken = $this->getPreviousToken($iPrev);
-        return $sToken[0];
-    }
-    /**
-     * Get the 'x' significant (non whitespace) previous token text
-     * @param  int   current-x token
-     * @return string
-     */
-    public function getPreviousTokenContent($iPrev = 1) 
-    {
-        $mToken = $this->getPreviousToken($iPrev);
-        return (is_string($mToken)) ? $mToken : $mToken[1];
-    }
-    public function getNextTokenNonCommentConstant($iPrev = 1) 
-    {
-        do {
-            $aToken = $this->getNextToken($iPrev);
-            $iPrev++;
-        }
-        while ($aToken[0] == T_COMMENT);
-        return $aToken[0];
-    }
-    /**
-     * Get the 'x' significant (non whitespace) next token constant
-     * @param  int   current+x token
-     * @return int
-     */
-    public function getNextTokenConstant($iPrev = 1) 
-    {
-        $sToken = $this->getNextToken($iPrev);
-        return $sToken[0];
-    }
-    /**
-     * Get the 'x' significant (non whitespace) next token text
-     * @param  int   current+x token
-     * @return int
-     */
-    public function getNextTokenContent($iNext = 1) 
-    {
-        $mToken = $this->getNextToken($iNext);
-        return (is_string($mToken)) ? $mToken : $mToken[1];
-    }
-    /**
-     * Return the whitespace previous to current token
-     * Ex.: You have
-     * '    if($a)'
-     * if you call this funcion on 'if', you get '    '
-     * @todo implements a more economic way to handle this.
-     * @return   string  previous whitespace
-     */
-    public function getPreviousWhitespace() 
-    {
-        $sWhiteSpace = '';
-        $aMatch=array();
+				if (strtolower(get_class($oFilter)) == 'php_beautifier_filter_' . strtolower($aMatch[1]) and method_exists($oFilter, $aMatch[3])) {
+					eval('$this->aFilters[' . $iIndex . ']->' . $aMatch[2] . ";");
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	private function controlToken($aCurrentToken) {
 
-        for ($x = $this->iCount-1 ; $x >= 0 ; $x--) {
-            $aToken = $this->getToken($x);
-            if (is_array($aToken)) {
-                if ($aToken[0] == T_WHITESPACE) {
-                    $sWhiteSpace.= $aToken[1];
-                } elseif (preg_match("/([\s\r\n]+)$/", $aToken[1], $aMatch)) {
-                    $sWhiteSpace.= $aMatch[0];
-                    // ArrayNested->off();
-                    // ArrayNested->on();
-                    return $sWhiteSpace;
-                }
-            } else {
-                return $sWhiteSpace;
-            }
-        }
-        // Strange, but...
-        return $sWhiteSpace;
-    }
-    /**
-     * Remove all whitespace from the previous tag
-     * @return bool  false if previous token was short comment or heredoc
-     *               (don't remove ws)
-     *               true anything else.
-     */
-    public function removeWhitespace() 
-    {
-        // if the previous token was
-        // - a short comment
-        // - heredoc
-        // don't remove whitespace!
-        //
-        if ($this->isPreviousTokenConstant(T_COMMENT) and preg_match("/^(\/\/|#)/", $this->getPreviousTokenContent())) { // Here for short comment
-            return false;
-        } elseif ($this->getPreviousTokenConstant(2) == T_END_HEREDOC) { // And here for heredoc
-            return false;
-        }
-        $pop = 0;
-        for ($i = count($this->aOut) -1 ; $i >= 0 ; $i--) { // go backwards
-            $cNow = &$this->aOut[$i];
-            if (strlen(trim($cNow)) == 0) { // only space
-                array_pop($this->aOut); // delete it!
-                $pop++;
-            } else { // we find something!
-                $cNow = rtrim($cNow); // rtrim out
-                break;
-            }
-        }
-        return true;
-    }
-    /**
-     * Get a token by number
-     * @param int number of the token
-     * @return array
-     */
-    public function &getToken($iIndex) 
-    {
-        if ($iIndex < 0 or $iIndex > count($this->aTokens)) {
-            return false;
-        } else {
-            return $this->aTokens[$iIndex];
-        }
-    }
-    public function openBraceDontProcess() {
-        return $this->isPreviousTokenConstant(T_VARIABLE) or $this->isPreviousTokenConstant(T_OBJECT_OPERATOR) or ($this->isPreviousTokenConstant(T_STRING) and $this->getPreviousTokenConstant(2) == T_OBJECT_OPERATOR) or $this->getMode('double_quote');
-    }
+		if (in_array($aCurrentToken[0], $this->aControlStructures)) {
+			$this->pushControlSeq($aCurrentToken);
+			$this->iControlLast = $aCurrentToken[0];
+		}
+
+		if (in_array($aCurrentToken[0], $this->aControlStructuresEnd)) {
+			$this->popControlSeq();
+		}
+		switch ($aCurrentToken[0]) {
+		case T_COMMENT:
+			$aMatch = array();
+
+			if (preg_match("/\/\/\s*(.*?)->((.*)\((.*)\))/", $aCurrentToken[1], $aMatch)) {
+				try {
+					$this->processCallback($aMatch);
+				} catch (Exception $oExp) {
+				}
+			}
+			break;
+		case T_FUNCTION:
+			$this->setMode('function');
+			break;
+		case T_CLASS:
+			$this->setMode('class');
+			break;
+		case T_ARRAY:
+			$this->iArray++;
+			break;
+		case T_WHITESPACE:
+			$this->currentWhitespace = $aCurrentToken[1];
+			break;
+		case '{':
+
+			if ($this->isPreviousTokenConstant(T_VARIABLE) or ($this->isPreviousTokenConstant(T_STRING) and $this->getPreviousTokenConstant(2) == T_OBJECT_OPERATOR) or $this->isPreviousTokenConstant(T_OBJECT_OPERATOR)) {
+				$this->setMode('string_index');
+			}
+			break;
+		case '(':
+			$this->iParenthesis++;
+			$this->pushControlParenthesis();
+			break;
+		case ')':
+			$this->iParenthesis--;
+			break;
+		case '?':
+			$this->setMode('ternary_operator');
+			$this->iTernary++;
+			break;
+		case '"':
+			($this->getMode('double_quote')) ? $this->unsetMode('double_quote') : $this->setMode('double_quote');
+			break;
+		case T_START_HEREDOC:
+			$this->setMode('double_quote');
+			break;
+		case T_END_HEREDOC:
+			$this->unsetMode('double_quote');
+			break;
+		}
+
+		if ($this->getTokenFunction($aCurrentToken[0]) == 't_include') {
+			$this->setMode('include');
+		}
+	}
+	private function controlTokenPost($aCurrentToken) {
+		switch ($aCurrentToken[0]) {
+		case ')':
+
+			if ($this->iArray) {
+				$this->iArray--;
+			}
+			$this->popControlParenthesis();
+			break;
+		case '}':
+
+			if ($this->getMode('string_index')) {
+				$this->unsetMode('string_index');
+			} else {
+				$prevIndex = 1;
+				while ($this->isPreviousTokenConstant(array(
+					T_COMMENT,
+					T_DOC_COMMENT,
+				), $prevIndex)) {
+					$prevIndex++;
+				}
+
+				if ($this->isPreviousTokenContent(array(
+					';',
+					'}',
+					'{',
+				), $prevIndex)) {
+
+					if (end($this->aControlSeq) != T_DO) {
+						$this->popControlSeq();
+					} else {
+						$this->DoWhileBeginEnd = true;
+					}
+				}
+			}
+			break;
+		case ';':
+
+			if (isset($this->aControlSeq) && (end($this->aControlSeq) == T_WHILE)) {
+				$counter = 0;
+				$openParenthesis = 0;
+				do {
+					$counter++;
+					$prevToken = $this->getPreviousTokenContent($counter);
+
+					if ($prevToken == "(") {
+						$openParenthesis++;
+					}
+				} while ($prevToken != "{" && $prevToken != "while");
+
+				if ($prevToken == "while" && $openParenthesis == 1) {
+
+					if ($this->DoWhileBeginEnd) {
+						$this->popControlSeq();
+						$this->DoWhileBeginEnd = false;
+					}
+					$this->popControlSeq();
+				}
+			}
+			break;
+		case '{':
+			$this->unsetMode('function');
+			break;
+		}
+
+		if ($this->getTokenFunction($aCurrentToken[0]) == 't_colon') {
+
+			if ($this->iTernary) {
+				$this->iTernary--;
+			}
+
+			if (!$this->iTernary) {
+				$this->unsetMode('ternary_operator');
+			}
+		}
+	}
+	private function pushControlSeq($aToken) {
+		array_push($this->aControlSeq, $aToken[0]);
+	}
+	private function popControlSeq() {
+		$aEl = array_pop($this->aControlSeq);
+		return $aEl;
+	}
+	private function pushControlParenthesis() {
+		$iPrevious = $this->getPreviousTokenConstant();
+		array_push($this->aControlParenthesis, $iPrevious);
+	}
+	private function popControlParenthesis() {
+		$iPop = array_pop($this->aControlParenthesis);
+		return $iPop;
+	}
+	public function setFileType($sType) {
+		$this->sFileType = $sType;
+	}
+	public function setBeautify($sFlag) {
+		$this->bBeautify = (bool) $sFlag;
+	}
+	public function show() {
+		echo $this->get();
+	}
+	public function setNoDeletePreviousSpaceHack($bFlag = true) {
+		$this->bNdps = $bFlag;
+	}
+	public function get() {
+
+		if (!$this->bNdps) {
+			return implode('', $this->aOut);
+		} else {
+			return str_replace('', '', implode('', $this->aOut));
+		}
+	}
+	public function getSetting($sKey) {
+		return (array_key_exists($sKey, $this->aSettings)) ? $this->aSettings[$sKey] : false;
+	}
+	public function getControlSeq($iRet = 0) {
+		$iIndex = count($this->aControlSeq) - $iRet - 1;
+		return ($iIndex >= 0) ? $this->aControlSeq[$iIndex] : false;
+	}
+	public function getControlParenthesis($iRet = 0) {
+		$iIndex = count($this->aControlParenthesis) - $iRet - 1;
+		return ($iIndex >= 0) ? $this->aControlParenthesis[$iIndex] : false;
+	}
+	public function setMode($sKey) {
+		$this->aModes[$sKey] = true;
+	}
+	public function unsetMode($sKey) {
+		$this->aModes[$sKey] = false;
+	}
+	public function getMode($sKey) {
+		return array_key_exists($sKey, $this->aModes) ? $this->aModes[$sKey] : false;
+	}
+	public function add($token) {
+		$this->aOut[] = $token;
+	}
+	public function pop($iReps = 1) {
+		for ($x = 0; $x < $iReps; $x++) {
+			$sLast = array_pop($this->aOut);
+		}
+		return $sLast;
+	}
+	public function addIndent() {
+		$this->aOut[] = str_repeat($this->sIndentChar, $this->iIndent);
+	}
+	public function setBeforeNewLine($sText) {
+		$this->sBeforeNewLine = $sText;
+	}
+	public function addNewLine() {
+
+		if (!is_null($this->sBeforeNewLine)) {
+			$this->aOut[] = $this->sBeforeNewLine;
+			$this->sBeforeNewLine = null;
+		}
+		$this->aOut[] = $this->sNewLine;
+	}
+	public function addNewLineIndent() {
+
+		if (!is_null($this->sBeforeNewLine)) {
+			$this->aOut[] = $this->sBeforeNewLine;
+			$this->sBeforeNewLine = null;
+		}
+		$this->aOut[] = $this->sNewLine;
+		$this->aOut[] = str_repeat($this->sIndentChar, $this->iIndent);
+	}
+	public function incIndent($iIncr = false) {
+
+		if (!$iIncr) {
+			$iIncr = $this->iIndentNumber;
+		}
+		array_push($this->aIndentStack, $iIncr);
+		$this->iIndent += $iIncr;
+	}
+	public function decIndent() {
+
+		if (count($this->aIndentStack > 1)) {
+			$iLastIndent = array_pop($this->aIndentStack);
+			$this->iIndent -= $iLastIndent;
+		}
+	}
+	private function getPreviousToken($iPrev = 1) {
+		for ($x = $this->iCount - 1; $x >= 0; $x--) {
+			$aToken = &$this->getToken($x);
+
+			if ($aToken[0] != T_WHITESPACE) {
+				$iPrev--;
+
+				if (!$iPrev) {
+					return $aToken;
+				}
+			}
+		}
+	}
+	private function getNextToken($iNext = 1) {
+		for ($x = $this->iCount + 1; $x < (count($this->aTokens) - 1); $x++) {
+			$aToken = &$this->getToken($x);
+
+			if ($aToken[0] != T_WHITESPACE) {
+				$iNext--;
+
+				if (!$iNext) {
+					return $aToken;
+				}
+			}
+		}
+	}
+	public function isPreviousTokenConstant($mValue, $iPrev = 1) {
+
+		if (!is_array($mValue)) {
+			$mValue = array(
+				$mValue,
+			);
+		}
+		$iPrevious = $this->getPreviousTokenConstant($iPrev);
+		return in_array($iPrevious, $mValue);
+	}
+	public function isPreviousTokenContent($mValue, $iPrev = 1) {
+
+		if (!is_array($mValue)) {
+			$mValue = array(
+				$mValue,
+			);
+		}
+		$iPrevious = $this->getPreviousTokenContent($iPrev);
+		return in_array($iPrevious, $mValue);
+	}
+	public function isNextTokenConstant($mValue, $iPrev = 1) {
+
+		if (!is_array($mValue)) {
+			$mValue = array(
+				$mValue,
+			);
+		}
+		$iNext = $this->getNextTokenConstant($iPrev);
+		return in_array($iNext, $mValue);
+	}
+	public function isNextTokenContent($mValue, $iPrev = 1) {
+
+		if (!is_array($mValue)) {
+			$mValue = array(
+				$mValue,
+			);
+		}
+		$iNext = $this->getNextTokenContent($iPrev);
+		return in_array($iNext, $mValue);
+	}
+	public function getPreviousTokenConstant($iPrev = 1) {
+		$sToken = $this->getPreviousToken($iPrev);
+		return $sToken[0];
+	}
+	public function getPreviousTokenContent($iPrev = 1) {
+		$mToken = $this->getPreviousToken($iPrev);
+		return (is_string($mToken)) ? $mToken : $mToken[1];
+	}
+	public function getNextTokenNonCommentConstant($iPrev = 1) {
+		do {
+			$aToken = $this->getNextToken($iPrev);
+			$iPrev++;
+		} while ($aToken[0] == T_COMMENT);
+		return $aToken[0];
+	}
+	public function getNextTokenConstant($iPrev = 1) {
+		$sToken = $this->getNextToken($iPrev);
+		return $sToken[0];
+	}
+	public function getNextTokenContent($iNext = 1) {
+		$mToken = $this->getNextToken($iNext);
+		return (is_string($mToken)) ? $mToken : $mToken[1];
+	}
+	public function getPreviousWhitespace() {
+		$sWhiteSpace = '';
+		$aMatch = array();
+		for ($x = $this->iCount - 1; $x >= 0; $x--) {
+			$aToken = $this->getToken($x);
+
+			if (is_array($aToken)) {
+
+				if ($aToken[0] == T_WHITESPACE) {
+					$sWhiteSpace .= $aToken[1];
+				} elseif (preg_match("/([\s\r\n]+)$/", $aToken[1], $aMatch)) {
+					$sWhiteSpace .= $aMatch[0];
+					return $sWhiteSpace;
+				}
+			} else {
+				return $sWhiteSpace;
+			}
+		}
+		return $sWhiteSpace;
+	}
+	public function removeWhitespace() {
+
+		if ($this->isPreviousTokenConstant(T_COMMENT) and preg_match("/^(\/\/|#)/", $this->getPreviousTokenContent())) {
+			return false;
+		} elseif ($this->getPreviousTokenConstant(2) == T_END_HEREDOC) {
+			return false;
+		}
+		$pop = 0;
+		for ($i = count($this->aOut) - 1; $i >= 0; $i--) {
+			$cNow = &$this->aOut[$i];
+
+			if (strlen(trim($cNow)) == 0) {
+				array_pop($this->aOut);
+				$pop++;
+			} else {
+				$cNow = rtrim($cNow);
+				break;
+			}
+		}
+		return true;
+	}
+	public function &getToken($iIndex) {
+
+		if ($iIndex < 0 or $iIndex > count($this->aTokens)) {
+			return false;
+		} else {
+			return $this->aTokens[$iIndex];
+		}
+	}
+	public function openBraceDontProcess() {
+		return $this->isPreviousTokenConstant(T_VARIABLE) or $this->isPreviousTokenConstant(T_OBJECT_OPERATOR) or ($this->isPreviousTokenConstant(T_STRING) and $this->getPreviousTokenConstant(2) == T_OBJECT_OPERATOR) or $this->getMode('double_quote');
+	}
 }
-
