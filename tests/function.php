@@ -1,6 +1,6 @@
 <?php
 
-include_once '../src/Formatter.php';
+include_once '../vendor/autoload.php';
 
 use Contal\Formatter;
 

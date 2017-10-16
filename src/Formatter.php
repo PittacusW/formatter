@@ -2,8 +2,6 @@
 
 namespace Contal;
 
-include_once '../vendor/autoload.php';
-
 class Formatter {
 	
 	public static function format($file) {
@@ -18,6 +16,6 @@ class Formatter {
         $b->setInputString($file);
         $b->setOutputFile($file);
         $b->process();
-        return $b->get();
+		return Fmt::run(['smart_linebreak_after_curly' => true, 'visibility_order' => false], $b->get());
 	}
 }

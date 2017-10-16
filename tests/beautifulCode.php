@@ -2,109 +2,196 @@
 
 namespace App\Models\Admin;
 
+use App\Utils\Sii;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Admin\ForeignKeys;
-use App\Models\Admin\Conexiones;
-use App\Models\Admin\Modelos;
-use App\Models\Admin\Controladores;
-use Contal\Formatter;
+use Intervention\Image\Facades\Image;
 
-class Crafter {
-	
-	public static function modelos() {
-		return Table::all()->transform(function ($table) {
-			$id = Modelos::where('tabla', $table)->pluck('id')->first();
-			$name = studly_case($table->get('name'));
-			$table = snake_case($name);
-			$conexion = config('database.default');
-			$columns = Column::all($table);
-			return collect(['id' => empty($id) ? null : $id, 'name' => $name, 'table' => $table, 'conexion' => $conexion, 'fillable' => $columns->where('primary', false)->pluck('name') , 'atributos' => empty($id) ? [] : Modelos::find($id)->atributos, 'funciones' => empty($id) ? [] : Modelos::find($id)->funciones, 'exists' => empty($id) ? false : true]);
+class Business extends Model {
+	use Notifiable;
+
+	public static $snakeAttributes = false;
+
+	public $timestamps = false;
+
+	protected $connection = 'general';
+
+	protected $table = 'empresas';
+
+	protected $primaryKey = 'idEmpresas';
+
+	protected $configurable = ['razonSocial', 'direccion', 'idComunas', 'telefono', 'email', 'idActividadEconomica', 'idTipoSociedad', 'idRegimenTributario', 'giro', 'idMutuales', 'idCcaf', 'sii'];
+
+	protected $fillable = ['idTipoSociedad', 'idActividadEconomica', 'idRegimenTributario', 'idComunas', 'idCcaf', 'idMutuales', 'alias', 'rut', 'razonSocial', 'direccion', 'telefono', 'email', 'paginaWeb', 'giro', 'fechaResolucion', 'nroResolucion', 'siiPassword', 'colores', 'activo'];
+
+	protected $appends = ['id', 'root', 'representatives', 'logo', 'configured', 'idPlans', 'idCertifications'];
+
+	protected $hidden = ['idSucursales', 'idBancos', 'idTipoCuenta', 'cuenta', 'siiPassword', 'plans', 'certifications'];
+
+	protected $dates = ['fechaResolucion'];
+
+	protected $with = ['plans', 'certifications'];
+
+	protected $casts = ['activo' => 'int'];
+
+	public function plans() {
+		return $this->belongsToMany(Plan::
+				class, 'modulos_empresas', 'idEmpresas', 'idModulosPlanes');
+	}
+
+	public function certifications() {
+		return $this->belongsToMany(Certification::
+				class, 'certificaciones_empresas', 'idEmpresas', 'idModulosCertificaciones')->withPivot('trackId', 'status');
+	}
+
+	protected static function boot() {
+		parent::boot();
+		static::creating(function ($model) {
+			$sii = new Sii($model->rut);
+			$model->razonSocial = $sii->getRazonSocial();
+			$model->idActividadEconomica = $sii->getActividadEconomica();
 		});
 	}
-	
-	public static function controladores() {
-		return Table::all()->transform(function ($table) {
-			$id = Controladores::where('tabla', $table)->pluck('id')->first();
-			$name = studly_case($table->get('name'));
-			$table = snake_case($name);
-			$conexion = config('database.default');
-			return collect(['id' => empty($id) ? null : $id, 'name' => $name, 'table' => $table, 'conexion' => $conexion, 'exists' => empty($id) ? false : true, 'atributos' => empty($id) ? [] : Controladores::find($id)->atributos, 'funciones' => empty($id) ? [] : Controladores::find($id)->funciones, 'rutas' => empty($id) ? [] : Controladores::find($id)->rutas, ]);
-		});
-	}
-	
-	public static function findModelo($id) {
-		return self::modelos()->where('id', $id)->first();
-	}
-	
-	public static function findControlador($id) {
-		return self::controladores()->where('id', $id)->first();
-	}
-	
-	public static function craftModel($table) {
-		$connection = config('database.default');
-		$idConexion = Conexiones::where('nombre', $connection)->pluck('id')->first();
-		$namespace = ucfirst($connection);
-		$name = studly_case($table);
-		$columns = Column::all($table);
-		$fillable = $columns->where('primary', false)->pluck('name');
-		$has = ForeignKeys::has($table);
-		$belongs = ForeignKeys::belongs($table);
-		$casts = array_pluck($belongs, 'referenced_column');
-		$has = $has->transform(function ($data) {
-			$clase = studly_case($data['referenced_table']);
-			$funcion = camel_case($data['referenced_table']);
-			$conexion = studly_case($data['referenced_connection']);
-			return collect(['function' => $funcion, 'connection' => $conexion, 'class' => $clase, 'column' => $data['referenced_column']]);
-		});
-		$belongs = $belongs->transform(function ($data) {
-			$clase = studly_case($data['origin_table']);
-			$funcion = camel_case($data['origin_table']);
-			$conexion = studly_case($data['origin_connection']);
-			return collect(['function' => $funcion, 'connection' => $conexion, 'class' => $clase, 'column' => $data['origin_column']]);
-		});
-		$id = Modelos::where('tabla', $table)->pluck('id')->first();
-		
-		if (empty($id)) {
-			Modelos::create(['tabla' => $table, 'idConexiones' => $idConexion]);
-			$uses = [];
-			$traits = [];
-			$hiddens = [];
-			$configurables = [];
-			$appends = [];
-			$withs = [];
-			$functions = [];
-			$scopes = [];
-			$relaciones = [];
-			$accessors = [];
-			$mutators = [];
+
+	public function upload($file, $default = false) {
+
+		if ($default && (is_null($file) || !$file->isValid())) {
+			$file = new UploadedFile(public_path('assets/img/empty-logo.png'), 'empty-logo.png', 'image/png');
 		}
-		else {
-			$uses = Modelos::find($id)->atributos()->where('tipo_atributo_id', 1)->pluck('contenido');
-			$traits = Modelos::find($id)->atributos()->where('tipo_atributo_id', 2)->pluck('contenido');
-			$hiddens = Modelos::find($id)->atributos()->where('tipo_atributo_id', 3)->pluck('contenido');
-			$configurables = Modelos::find($id)->atributos()->where('tipo_atributo_id', 4)->pluck('contenido');
-			$appends = Modelos::find($id)->atributos()->where('tipo_atributo_id', 5)->pluck('contenido');
-			$withs = Modelos::find($id)->atributos()->where('tipo_atributo_id', 6)->pluck('contenido');
-			$functions = Modelos::find($id)->funciones()->where('metodos_id', 1);
-			$scopes = Modelos::find($id)->funciones()->where('metodos_id', 2);
-			$relaciones = Modelos::find($id)->funciones()->where('metodos_id', 3);
-			$accessors = Modelos::find($id)->funciones()->where('metodos_id', 4);
-			$mutators = Modelos::find($id)->funciones()->where('metodos_id', 5);
+		$img = $file->storeAs('logos', "{$this->getKey()}.png");
+		$path = storage_path("app/public/{$img}");
+		Image::make($path)->resize(null, 600, function ($constraint) {
+			$constraint->aspectRatio();
+		})->save($path, 100);
+	}
+
+	public function eliminate() {
+		Storage::delete("logos/{$this->getKey()}.png");
+		$this->delete();
+	}
+
+	public function syncPlans(array $plans) {
+		$this->plans()->sync($plans, true);
+		$this->load('plans');
+	}
+
+	public function syncCertifications(array $certifications, $detach = true) {
+		$this->certifications()->sync($certifications, $detach);
+		$this->load('certifications');
+	}
+
+	public function getConfigurable() {
+		return $this->configurable;
+	}
+
+	public function isConfigured() {
+		foreach ($this->getConfigurable() as $attribute) {
+
+			if (empty($this->getAttribute($attribute))) {
+				return false;
+			}
 		}
-		$content = view('layouts.models', compact('namespace', 'name', 'connection', 'table', 'fillable', 'casts', 'has', 'belongs', 'uses', 'traits', 'hiddens', 'configurables', 'appends', 'withs', 'functions', 'scopes', 'relaciones', 'accessors', 'mutators'))->render();
-		$content = Formatter::format("<?php\r\n\r\n$content");
-		Storage::disk("models-{$connection}")->put("{$name}.php", $content);
-		return self::findModelo($id);
+		return true;
 	}
-	
-	public static function update($id, $data) {
-		self::find($id)->update($data);
-		return self::generate($data['table']);
+
+	public function hasCommercialManagementModule() {
+		return $this->plans()->where('idModulos', 1)->exists();
 	}
-	
-	public static function delete($id) {
-		$name = camel_case($id);
-		Storage::disk('objects')->delete("$name.php");
-		return compact('name');
+
+	public function getDatabaseName() {
+		return app()->environment('production') ? "erp_{$this->alias}" : env('DB_DATABASE2');
+	}
+
+	public function setDatabaseName() {
+		$name = $this->getDatabaseName();
+
+		if (!Database::exists($name)) {
+			return false;
+		}
+		Database::setConnectionDatabaseName('particular', $name);
+		return true;
+	}
+
+	public function getIdAttribute() {
+		return $this->getKey();
+	}
+
+	public function setRutAttribute($value) {
+		$this->attributes['rut'] = filter_rut($value);
+	}
+
+	public function setAliasAttribute($value) {
+		$this->attributes['alias'] = strtolower($value);
+	}
+
+	public function setFechaResolucionAttribute($value) {
+		$this->attributes['fechaResolucion'] = empty($value) ? null : Carbon::parse($value)->format('Y-m-d');
+	}
+
+	public function getFechaResolucionAttribute($value) {
+		return empty($value) ? null : Carbon::parse($value)->format('d-m-Y');
+	}
+
+	public function setSiiPasswordAttribute($value) {
+
+		if (!empty($value)) {
+			$this->attributes['siiPassword'] = Object::newInstance('Auth', ['dbp', 'dbg'])->fill($value)->exec('generatorPassword');
+		}
+	}
+
+	public function getSiiPasswordAttribute($value) {
+		try {
+			return empty($value) ? null : Object::newInstance('Auth', ['dbp', 'dbg'])->fill($value)->exec('unlock');
+		} catch (\Exception $e) {
+			return null;
+		}
+	}
+
+	public function setColoresAttribute($value) {
+		$this->attributes['colores'] = json_encode($value);
+	}
+
+	public function getColoresAttribute() {
+		return json_decode($this->attributes['colores']);
+	}
+
+	public function getRootAttribute() {
+
+		if (!$this->setDatabaseName()) {
+			return null;
+		}
+		return NaturalPerson::select('rut', 'email')->isAdmin()->first();
+	}
+
+	public function getRepresentativesAttribute() {
+
+		if (!$this->setDatabaseName()) {
+			return null;
+		}
+		return NaturalPerson::isRepresentative()->get()->pluck('rut');
+	}
+
+	public function getLogoAttribute() {
+		$path = "logos/{$this->getKey()}.png";
+
+		if (!Storage::exists($path)) {
+			return null;
+		}
+		return Storage::url($path) . "?_dc=" . Storage::lastModified($path);
+	}
+
+	public function getConfiguredAttribute() {
+		return Storage::disk('private')->exists("terms/{$this->getKey()}.pdf");
+	}
+
+	public function getIdPlansAttribute() {
+		return $this->relationLoaded('plans') ? $this->plans->pluck(with(new Plan)->getKeyName()) : [];
+	}
+
+	public function getIdCertificationsAttribute() {
+		return $this->relationLoaded('certifications') ? $this->certifications->pluck(with(new Certification)->getKeyName()) : [];
 	}
 }
