@@ -1,6 +1,5 @@
 <?php
 
-namespace Contal;
 
 class Formatter {
 	
@@ -13,7 +12,6 @@ class Formatter {
 			$b->Default();
 			$b->IndentStyles(['style' => 'K&R']);
 			$b->ArrayNested();
-			$b->NewLines(['before' => ['T_IF', 'namespace', 'T_PUBLIC', 'T_PRIVATE', 'T_PROTECTED'], 'after' => ['namespace', 'class']]);
 			$b->setInputString($file);
 			$b->setOutputFile($file);
 			$b->process();

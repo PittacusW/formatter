@@ -1,46 +1,74 @@
 <?php
-
-namespace Contal\Fmt\Additionals;
+# Copyright (c) 2015, phpfmt and its authors
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 final class YodaComparisons extends AdditionalPass {
 	const CHAIN_FUNC = 'CHAIN_FUNC';
-	const CHAIN_LITERAL = 'CHAIN_LITERAL';
-	const CHAIN_STRING = 'CHAIN_STRING';
-	const CHAIN_VARIABLE = 'CHAIN_VARIABLE';
-	const PARENTHESES_BLOCK = 'PARENTHESES_BLOCK';
-	public function candidate($source, $foundTokens) {
 
-		if (isset($foundTokens[T_IS_EQUAL]) || isset($foundTokens[T_IS_IDENTICAL]) || isset($foundTokens[T_IS_NOT_EQUAL]) || isset($foundTokens[T_IS_NOT_IDENTICAL])) {
+	const CHAIN_LITERAL = 'CHAIN_LITERAL';
+
+	const CHAIN_STRING = 'CHAIN_STRING';
+
+	const CHAIN_VARIABLE = 'CHAIN_VARIABLE';
+
+	const PARENTHESES_BLOCK = 'PARENTHESES_BLOCK';
+
+	public function candidate($source, $foundTokens) {
+		if (
+			isset($foundTokens[T_IS_EQUAL]) ||
+			isset($foundTokens[T_IS_IDENTICAL]) ||
+			isset($foundTokens[T_IS_NOT_EQUAL]) ||
+			isset($foundTokens[T_IS_NOT_IDENTICAL])
+		) {
 			return true;
 		}
+
 		return false;
 	}
+
 	public function format($source) {
 		return $this->yodise($source);
 	}
+
+	/**
+	 * @codeCoverageIgnore
+	 */
 	public function getDescription() {
 		return 'Execute Yoda Comparisons.';
 	}
+
+	/**
+	 * @codeCoverageIgnore
+	 */
 	public function getExample() {
 		return <<<'EOT'
 <?php
 if($a == 1){
 
 }
-?>
+
 to
 <?php
 if(1 == $a){
 
 }
-?>
-EOT;
 
+EOT;
 	}
+
 	protected function yodise($source) {
 		$tkns = $this->aggregateVariables($source);
 		while (list($ptr, $token) = each($tkns)) {
-
 			if (is_null($token)) {
 				continue;
 			}
@@ -53,24 +81,23 @@ EOT;
 				list($left, $right) = $this->siblings($tkns, $ptr);
 				list($leftId) = $tkns[$left];
 				list($rightId) = $tkns[$right];
-
 				if ($leftId == $rightId) {
 					continue;
 				}
+
 				$leftPureVariable = $this->isPureVariable($leftId);
 				for ($leftmost = $left; $leftmost >= 0; --$leftmost) {
 					list($leftScanId) = $this->getToken($tkns[$leftmost]);
-
 					if ($this->isLowerPrecedence($leftScanId)) {
 						++$leftmost;
 						break;
 					}
 					$leftPureVariable &= $this->isPureVariable($leftScanId);
 				}
+
 				$rightPureVariable = $this->isPureVariable($rightId);
 				for ($rightmost = $right; $rightmost < sizeof($tkns) - 1; ++$rightmost) {
 					list($rightScanId) = $this->getToken($tkns[$rightmost]);
-
 					if ($this->isLowerPrecedence($rightScanId)) {
 						--$rightmost;
 						break;
@@ -81,14 +108,14 @@ EOT;
 				if ($leftPureVariable && !$rightPureVariable) {
 					$origLeftTokens = $leftTokens = implode('', array_map(function ($token) {
 						return isset($token[1]) ? $token[1] : $token;
-					}
-						, array_slice($tkns, $leftmost, $left - $leftmost + 1)));
+					}, array_slice($tkns, $leftmost, $left - $leftmost + 1)));
 					$origRightTokens = $rightTokens = implode('', array_map(function ($token) {
 						return isset($token[1]) ? $token[1] : $token;
-					}
-						, array_slice($tkns, $right, $rightmost - $right + 1)));
+					}, array_slice($tkns, $right, $rightmost - $right + 1)));
+
 					$leftTokens = (substr($origRightTokens, 0, 1) == ' ' ? ' ' : '') . trim($leftTokens) . (substr($origRightTokens, -1, 1) == ' ' ? ' ' : '');
 					$rightTokens = (substr($origLeftTokens, 0, 1) == ' ' ? ' ' : '') . trim($rightTokens) . (substr($origLeftTokens, -1, 1) == ' ' ? ' ' : '');
+
 					$tkns[$leftmost] = ['REPLACED', $rightTokens];
 					$tkns[$right] = ['REPLACED', $leftTokens];
 
@@ -97,7 +124,6 @@ EOT;
 							$tkns[$i] = null;
 						}
 					}
-
 					if ($rightmost != $right) {
 						for ($i = $right + 1; $i <= $rightmost; ++$i) {
 							$tkns[$i] = null;
@@ -108,6 +134,7 @@ EOT;
 		}
 		return $this->render($tkns);
 	}
+
 	private function aggregateVariables($source) {
 		$tkns = token_get_all($source);
 		while (list($ptr, $token) = each($tkns)) {
@@ -119,7 +146,6 @@ EOT;
 				$tkns[$initialPtr] = [self::PARENTHESES_BLOCK, $tmp];
 				continue;
 			}
-
 			if (ST_QUOTE == $id) {
 				$stack = $text;
 				$initialPtr = $ptr;
@@ -127,11 +153,11 @@ EOT;
 					list($id, $text) = $this->getToken($token);
 					$stack .= $text;
 					$tkns[$ptr] = null;
-
 					if (ST_QUOTE == $id) {
 						break;
 					}
 				}
+
 				$tkns[$initialPtr] = [self::CHAIN_STRING, $stack];
 				continue;
 			}
@@ -140,18 +166,19 @@ EOT;
 				$initialIndex = $ptr;
 				$stack = $text;
 				$touchedVariable = false;
-
 				if (T_VARIABLE == $id) {
 					$touchedVariable = true;
 				}
-
-				if (!$this->rightTokenSubsetIsAtIdx($tkns, $ptr, [T_STRING, T_VARIABLE, T_NS_SEPARATOR, T_OBJECT_OPERATOR, T_DOUBLE_COLON, ST_CURLY_OPEN, ST_PARENTHESES_OPEN, ST_BRACKET_OPEN, T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])) {
+				if (!$this->rightTokenSubsetIsAtIdx(
+					$tkns,
+					$ptr,
+					[T_STRING, T_VARIABLE, T_NS_SEPARATOR, T_OBJECT_OPERATOR, T_DOUBLE_COLON, ST_CURLY_OPEN, ST_PARENTHESES_OPEN, ST_BRACKET_OPEN, T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES]
+				)) {
 					continue;
 				}
 				while (list($ptr, $token) = each($tkns)) {
 					list($id, $text) = $this->getToken($token);
 					$tkns[$ptr] = null;
-
 					if (ST_CURLY_OPEN == $id) {
 						$text = $this->scanAndReplaceCurly($tkns, $ptr, ST_CURLY_OPEN, 'yodise', [T_IS_EQUAL, T_IS_IDENTICAL, T_IS_NOT_EQUAL, T_IS_NOT_IDENTICAL]);
 					} elseif (T_CURLY_OPEN == $id) {
@@ -163,18 +190,24 @@ EOT;
 					} elseif (ST_PARENTHESES_OPEN == $id) {
 						$text = $this->scanAndReplace($tkns, $ptr, ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE, 'yodise', [T_IS_EQUAL, T_IS_IDENTICAL, T_IS_NOT_EQUAL, T_IS_NOT_IDENTICAL]);
 					}
+
 					$stack .= $text;
 
 					if (!$touchedVariable && T_VARIABLE == $id) {
 						$touchedVariable = true;
 					}
 
-					if (!$this->rightTokenSubsetIsAtIdx($tkns, $ptr, [T_STRING, T_VARIABLE, T_NS_SEPARATOR, T_OBJECT_OPERATOR, T_DOUBLE_COLON, ST_CURLY_OPEN, ST_PARENTHESES_OPEN, ST_BRACKET_OPEN, T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])) {
+					if (
+						!$this->rightTokenSubsetIsAtIdx(
+							$tkns,
+							$ptr,
+							[T_STRING, T_VARIABLE, T_NS_SEPARATOR, T_OBJECT_OPERATOR, T_DOUBLE_COLON, ST_CURLY_OPEN, ST_PARENTHESES_OPEN, ST_BRACKET_OPEN, T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES]
+						)
+					) {
 						break;
 					}
 				}
 				$chain = [self::CHAIN_LITERAL, $stack];
-
 				if (substr(trim($stack), -1, 1) == ST_PARENTHESES_CLOSE) {
 					$chain = [self::CHAIN_FUNC, $stack];
 				} elseif ($touchedVariable) {
@@ -186,6 +219,7 @@ EOT;
 		$tkns = array_values(array_filter($tkns));
 		return $tkns;
 	}
+
 	private function isLowerPrecedence($id) {
 		switch ($id) {
 		case ST_REFERENCE:
@@ -225,6 +259,7 @@ EOT;
 		}
 		return false;
 	}
+
 	private function isPureVariable($id) {
 		return self::CHAIN_VARIABLE == $id || T_VARIABLE == $id || T_INC == $id || T_DEC == $id || ST_EXCLAMATION == $id || T_COMMENT == $id || T_DOC_COMMENT == $id || T_WHITESPACE == $id;
 	}

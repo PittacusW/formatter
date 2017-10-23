@@ -1,10 +1,8 @@
 <?php
 
-namespace Contal\Beautifier\Batch;
-
-abstract class PHP_Beautifier_Batch_Output {
+abstract class Batch_Output {
 	protected $oBatch;
-	public function __construct(PHP_Beautifier_Batch $oBatch) {
+	public function __construct(Batch $oBatch) {
 		$this->oBatch = $oBatch;
 	}
 	protected function beautifierSetInputFile($sFile) {

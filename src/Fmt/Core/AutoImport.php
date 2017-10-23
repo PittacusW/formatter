@@ -1,31 +1,48 @@
 <?php
+# Copyright (c) 2015, phpfmt and its authors
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-namespace Contal\Fmt\Core;
-
+/**
+ * @codeCoverageIgnore
+ */
 final class AutoImportPass extends FormatterPass {
 	const AUTOIMPORT_PLACEHOLDER = "/*\x2 AUTOIMPORT \x3*/";
+
 	const OPENER_PLACEHOLDER = "<?php /*\x2 AUTOIMPORTNS \x3*/";
+
 	private $oracle = null;
+
 	public function __construct($oracleFn) {
 		$this->oracle = new SQLite3($oracleFn);
 	}
+
 	public function candidate($source, $foundTokens) {
 		return true;
 	}
+
 	public function format($source = '') {
 		$namespaceCount = 0;
 		$tokens = token_get_all($source);
 		while (list(, $token) = each($tokens)) {
 			list($id, $text) = $this->getToken($token);
-
 			if (T_NAMESPACE == $id && !$this->rightUsefulTokenIs(T_NS_SEPARATOR)) {
 				++$namespaceCount;
 			}
 		}
-
 		if ($namespaceCount <= 1) {
 			return $this->singleNamespace($source);
 		}
+
 		$return = '';
 		reset($tokens);
 		while (list($index, $token) = each($tokens)) {
@@ -34,7 +51,6 @@ final class AutoImportPass extends FormatterPass {
 			switch ($id) {
 			case T_NAMESPACE:
 				$return .= $text;
-
 				if ($this->rightUsefulTokenIs(T_NS_SEPARATOR)) {
 					break;
 				}
@@ -42,7 +58,6 @@ final class AutoImportPass extends FormatterPass {
 					list($id, $text) = $this->getToken($token);
 					$this->ptr = $index;
 					$return .= $text;
-
 					if (ST_CURLY_OPEN == $id) {
 						break;
 					}
@@ -53,7 +68,6 @@ final class AutoImportPass extends FormatterPass {
 					list($id, $text) = $this->getToken($token);
 					$this->ptr = $index;
 					$namespaceBlock .= $text;
-
 					if (ST_CURLY_OPEN == $id) {
 						++$curlyCount;
 					} elseif (ST_CURLY_CLOSE == $id) {
@@ -64,21 +78,27 @@ final class AutoImportPass extends FormatterPass {
 						break;
 					}
 				}
-				$return .= str_replace(self::OPENER_PLACEHOLDER, '', $this->singleNamespace(self::OPENER_PLACEHOLDER . $namespaceBlock));
+				$return .= str_replace(
+					self::OPENER_PLACEHOLDER,
+					'',
+					$this->singleNamespace(self::OPENER_PLACEHOLDER . $namespaceBlock)
+				);
 				break;
 			default:
 				$return .= $text;
 			}
 		}
+
 		return $return;
 	}
-	private function calculateAlias($use) {
 
+	private function calculateAlias($use) {
 		if (false !== stripos($use, ' as ')) {
 			return substr(strstr($use, ' as '), strlen(' as '), -1);
 		}
 		return basename(str_replace('\\', '/', trim(substr($use, strlen('use'), -1))));
 	}
+
 	private function singleNamespace($source) {
 		$classList = [];
 		$results = $this->oracle->query('SELECT class FROM classes ORDER BY class');
@@ -91,49 +111,42 @@ final class AutoImportPass extends FormatterPass {
 				$classList[strtolower($baseClassName)][ltrim(str_replace('\\\\', '\\', '\\' . $className) . ' as ' . $baseClassName, '\\')] = ltrim(str_replace('\\\\', '\\', '\\' . $className) . ' as ' . $baseClassName, '\\');
 			}
 		}
+
 		$tokens = token_get_all($source);
 		$aliasCount = [];
 		$namespaceName = '';
 		while (list($index, $token) = each($tokens)) {
 			list($id, $text) = $this->getToken($token);
-
 			if (T_NAMESPACE == $id && !$this->rightUsefulTokenIs(T_NS_SEPARATOR)) {
 				while (list($index, $token) = each($tokens)) {
 					list($id, $text) = $this->getToken($token);
-
 					if (T_NS_SEPARATOR == $id || T_STRING == $id) {
 						$namespaceName .= $text;
 					}
-
 					if (ST_SEMI_COLON == $id || ST_CURLY_OPEN == $id) {
 						break;
 					}
 				}
 			}
-
 			if (T_USE == $id || T_NAMESPACE == $id || T_FUNCTION == $id || T_DOUBLE_COLON == $id || T_OBJECT_OPERATOR == $id) {
 				while (list($index, $token) = each($tokens)) {
 					list($id, $text) = $this->getToken($token);
-
 					if (ST_SEMI_COLON == $id || ST_PARENTHESES_OPEN == $id || ST_CURLY_OPEN == $id) {
 						break;
 					}
 				}
 			}
-
 			if (T_CLASS == $id) {
 				while (list($index, $token) = each($tokens)) {
 					list($id, $text) = $this->getToken($token);
-
 					if (T_EXTENDS == $id || T_IMPLEMENTS == $id || ST_CURLY_OPEN == $id) {
 						break;
 					}
 				}
 			}
+
 			$lowerText = strtolower($text);
-
 			if (T_STRING === $id && ($this->leftTokenSubsetIsAtIdx($tokens, $index, T_NEW) || $this->rightTokenSubsetIsAtIdx($tokens, $index, T_DOUBLE_COLON))) {
-
 				if (!isset($aliasCount[$lowerText])) {
 					$aliasCount[$lowerText] = 0;
 				}
@@ -141,6 +154,7 @@ final class AutoImportPass extends FormatterPass {
 			}
 		}
 		$autoImportCandidates = array_intersect_key($classList, $aliasCount);
+
 		$tokens = token_get_all($source);
 		$touchedNamespace = false;
 		$touchedFunction = false;
@@ -151,14 +165,13 @@ final class AutoImportPass extends FormatterPass {
 			if (T_NAMESPACE == $id && !$this->rightUsefulTokenIs(T_NS_SEPARATOR)) {
 				$touchedNamespace = true;
 			}
-
 			if (T_FUNCTION == $id) {
 				$touchedFunction = true;
 			}
-
 			if (!$touchedFunction && $touchedNamespace && (T_FINAL == $id || T_STATIC == $id || T_USE == $id || T_CLASS == $id || T_INTERFACE == $id || T_TRAIT == $id)) {
 				$return .= self::AUTOIMPORT_PLACEHOLDER . $this->newLine;
 				$return .= $text;
+
 				break;
 			}
 			$return .= $text;
@@ -167,10 +180,10 @@ final class AutoImportPass extends FormatterPass {
 			list(, $text) = $this->getToken($token);
 			$return .= $text;
 		}
+
 		$usedAlias = $this->usedAliasList($source);
 		$replacement = '';
 		foreach ($autoImportCandidates as $alias => $candidates) {
-
 			if (isset($usedAlias[$alias])) {
 				continue;
 			}
@@ -179,9 +192,11 @@ final class AutoImportPass extends FormatterPass {
 			});
 			$replacement .= 'use ' . implode(';' . $this->newLine . '//use ', $candidates) . ';' . $this->newLine;
 		}
+
 		$return = str_replace(self::AUTOIMPORT_PLACEHOLDER . $this->newLine, $replacement, $return);
 		return $return;
 	}
+
 	private function usedAliasList($source) {
 		$tokens = token_get_all($source);
 		$useStack = [];
@@ -192,16 +207,13 @@ final class AutoImportPass extends FormatterPass {
 			$nextTokens[] = $popToken;
 			while (($token = array_shift($nextTokens))) {
 				list($id, $text) = $this->getToken($token);
-
 				if (T_NAMESPACE == $id && !$this->rightUsefulTokenIs(T_NS_SEPARATOR)) {
 					$touchedNamespace = true;
 				}
-
 				if (T_USE === $id) {
 					$useItem = $text;
 					while (list(, $token) = each($tokens)) {
 						list($id, $text) = $this->getToken($token);
-
 						if (ST_SEMI_COLON === $id) {
 							$useItem .= $text;
 							break;
@@ -215,9 +227,7 @@ final class AutoImportPass extends FormatterPass {
 					$useStack[] = $useItem;
 					$token = new SurrogateToken();
 				}
-
 				if (T_FINAL === $id || T_ABSTRACT === $id || T_INTERFACE === $id || T_CLASS === $id || T_FUNCTION === $id || T_TRAIT === $id || T_VARIABLE === $id) {
-
 					if (sizeof($useStack) > 0) {
 						$newTokens[] = $this->newLine;
 						$newTokens[] = $this->newLine;
@@ -225,7 +235,6 @@ final class AutoImportPass extends FormatterPass {
 					$newTokens[] = $token;
 					break 2;
 				} elseif ($touchedNamespace && (T_DOC_COMMENT === $id || T_COMMENT === $id)) {
-
 					if (sizeof($useStack) > 0) {
 						$newTokens[] = $this->newLine;
 					}
@@ -235,6 +244,7 @@ final class AutoImportPass extends FormatterPass {
 				$newTokens[] = $token;
 			}
 		}
+
 		natcasesort($useStack);
 		$aliasList = [];
 		$aliasCount = [];
@@ -245,11 +255,9 @@ final class AutoImportPass extends FormatterPass {
 			$aliasCount[$alias] = 0;
 		}
 		foreach ($newTokens as $token) {
-
 			if (!($token instanceof SurrogateToken)) {
 				list($id, $text) = $this->getToken($token);
 				$lowerText = strtolower($text);
-
 				if (T_STRING === $id && isset($aliasList[$lowerText])) {
 					++$aliasCount[$lowerText];
 				}
@@ -258,12 +266,10 @@ final class AutoImportPass extends FormatterPass {
 		while (list($index, $token) = each($tokens)) {
 			list($id, $text) = $this->getToken($token);
 			$lowerText = strtolower($text);
-
 			if (T_STRING === $id && isset($aliasList[$lowerText]) && ($this->leftTokenSubsetIsAtIdx($tokens, $index, T_NEW) || $this->rightTokenSubsetIsAtIdx($tokens, $index, T_DOUBLE_COLON))) {
 				++$aliasCount[$lowerText];
 			} elseif (T_DOC_COMMENT === $id) {
 				foreach ($aliasList as $alias => $use) {
-
 					if (false !== stripos($text, $alias)) {
 						++$aliasCount[$alias];
 					}

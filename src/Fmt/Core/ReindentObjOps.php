@@ -1,19 +1,35 @@
 <?php
-
-namespace Contal\Fmt\Core;
+# Copyright (c) 2015, phpfmt and its authors
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 final class ReindentObjOps extends FormatterPass {
 	const ALIGN_WITH_INDENT = 1;
-	public function candidate($source, $foundTokens) {
 
-		if (isset($foundTokens[T_OBJECT_OPERATOR]) || isset($foundTokens[T_DOUBLE_COLON])) {
+	public function candidate($source, $foundTokens) {
+		if (
+			isset($foundTokens[T_OBJECT_OPERATOR]) ||
+			isset($foundTokens[T_DOUBLE_COLON])
+		) {
 			return true;
 		}
+
 		return false;
 	}
+
 	public function format($source) {
 		$this->tkns = token_get_all($source);
 		$this->code = '';
+
 		$levelCounter = 0;
 		$levelEntranceCounter = [];
 		$contextCounter = [];
@@ -22,6 +38,7 @@ final class ReindentObjOps extends FormatterPass {
 		$printedPlaceholder = [];
 		$maxContextCounter = [];
 		$touchedParenOpen = false;
+
 		while (list($index, $token) = each($this->tkns)) {
 			list($id, $text) = $this->getToken($token);
 			$this->ptr = $index;
@@ -38,6 +55,7 @@ final class ReindentObjOps extends FormatterPass {
 				$this->appendCode($text);
 				$this->printUntil(T_END_HEREDOC);
 				break;
+
 			case T_WHILE:
 			case T_IF:
 			case T_FOR:
@@ -47,13 +65,12 @@ final class ReindentObjOps extends FormatterPass {
 				$this->printUntil(ST_PARENTHESES_OPEN);
 				$this->printBlock(ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE);
 				break;
+
 			case T_NEW:
 				$this->appendCode($text);
-
 				if ($touchedParenOpen) {
 					$touchedParenOpen = false;
 					$foundToken = $this->printUntilAny([ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE, ST_COMMA]);
-
 					if (ST_PARENTHESES_OPEN == $foundToken) {
 						$this->incrementCounters($levelCounter, $levelEntranceCounter, $contextCounter, $maxContextCounter, $touchCounter, $alignType, $printedPlaceholder);
 						$this->printBlock(ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE);
@@ -61,17 +78,17 @@ final class ReindentObjOps extends FormatterPass {
 					}
 				}
 				break;
+
 			case T_FUNCTION:
 				$this->appendCode($text);
 				break;
+
 			case T_VARIABLE:
 			case T_STRING:
 				$this->appendCode($text);
-
 				if (!isset($levelEntranceCounter[$levelCounter])) {
 					$levelEntranceCounter[$levelCounter] = 0;
 				}
-
 				if (!isset($contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]])) {
 					$contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = 0;
 					$maxContextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = 0;
@@ -80,31 +97,30 @@ final class ReindentObjOps extends FormatterPass {
 					$printedPlaceholder[$levelCounter][$levelEntranceCounter[$levelCounter]][$contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]]] = 0;
 				}
 				break;
+
 			case ST_PARENTHESES_OPEN:
 			case ST_BRACKET_OPEN:
 				$this->incrementCounters($levelCounter, $levelEntranceCounter, $contextCounter, $maxContextCounter, $touchCounter, $alignType, $printedPlaceholder);
 				$this->appendCode($text);
 				break;
+
 			case ST_PARENTHESES_CLOSE:
 			case ST_BRACKET_CLOSE:
 				--$levelCounter;
 				$this->appendCode($text);
 				break;
+
 			case T_DOUBLE_COLON:
 			case T_OBJECT_OPERATOR:
-
 				if (!isset($touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]]) || 0 == $touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]]) {
-
 					if (!isset($touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]])) {
 						$touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = 0;
 					}
 					++$touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]];
-
 					if ($this->hasLnBefore()) {
 						$alignType[$levelCounter][$levelEntranceCounter[$levelCounter]] = self::ALIGN_WITH_INDENT;
 						$this->appendCode($this->getIndent(+1) . $text);
 						$foundToken = $this->printUntilAny([ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE, ST_SEMI_COLON, $this->newLine]);
-
 						if (ST_SEMI_COLON == $foundToken) {
 							$this->incrementCounters($levelCounter, $levelEntranceCounter, $contextCounter, $maxContextCounter, $touchCounter, $alignType, $printedPlaceholder);
 						} elseif (ST_PARENTHESES_OPEN == $foundToken || ST_PARENTHESES_CLOSE == $foundToken) {
@@ -117,7 +133,6 @@ final class ReindentObjOps extends FormatterPass {
 					++$touchCounter[$levelCounter][$levelEntranceCounter[$levelCounter]];
 					$this->appendCode($this->getIndent(+1) . $text);
 					$foundToken = $this->printUntilAny([ST_PARENTHESES_OPEN, ST_PARENTHESES_CLOSE, ST_SEMI_COLON, $this->newLine]);
-
 					if (ST_SEMI_COLON == $foundToken) {
 						$this->incrementCounters($levelCounter, $levelEntranceCounter, $contextCounter, $maxContextCounter, $touchCounter, $alignType, $printedPlaceholder);
 					} elseif (ST_PARENTHESES_OPEN == $foundToken || ST_PARENTHESES_CLOSE == $foundToken) {
@@ -128,34 +143,40 @@ final class ReindentObjOps extends FormatterPass {
 				}
 				$this->appendCode($text);
 				break;
+
 			case T_COMMENT:
 			case T_DOC_COMMENT:
-
-				if (isset($alignType[$levelCounter]) && isset($levelEntranceCounter[$levelCounter]) && isset($alignType[$levelCounter][$levelEntranceCounter[$levelCounter]]) && ($this->hasLnBefore() || $this->hasLnLeftToken()) && self::ALIGN_WITH_INDENT == $alignType[$levelCounter][$levelEntranceCounter[$levelCounter]]) {
+				if (
+					isset($alignType[$levelCounter]) &&
+					isset($levelEntranceCounter[$levelCounter]) &&
+					isset($alignType[$levelCounter][$levelEntranceCounter[$levelCounter]]) &&
+					($this->hasLnBefore() || $this->hasLnLeftToken()) &&
+					self::ALIGN_WITH_INDENT == $alignType[$levelCounter][$levelEntranceCounter[$levelCounter]]
+				) {
 					$this->appendCode($this->getIndent(+1));
 				}
 				$this->appendCode($text);
-
 				if ($this->leftUsefulTokenIs([T_OBJECT_OPERATOR, T_DOUBLE_COLON]) && $this->hasLn($text)) {
 					$this->appendCode($this->getIndent(+1));
 				}
 				break;
+
 			case ST_COMMA:
 			case ST_SEMI_COLON:
-
 				if (!isset($levelEntranceCounter[$levelCounter])) {
 					$levelEntranceCounter[$levelCounter] = 0;
 				}
 				++$levelEntranceCounter[$levelCounter];
 				$this->appendCode($text);
 				break;
+
 			case T_WHITESPACE:
 				$this->appendCode($text);
-
 				if ($this->leftUsefulTokenIs([T_OBJECT_OPERATOR, T_DOUBLE_COLON]) && $this->hasLn($text)) {
 					$this->appendCode($this->getIndent(+1));
 				}
 				break;
+
 			default:
 				$touchedParenOpen = false;
 				$this->appendCode($text);
@@ -164,14 +185,21 @@ final class ReindentObjOps extends FormatterPass {
 		}
 		return $this->code;
 	}
-	protected function incrementCounters(&$levelCounter, &$levelEntranceCounter, &$contextCounter, &$maxContextCounter, &$touchCounter, &$alignType, &$printedPlaceholder) {
-		++$levelCounter;
 
+	protected function incrementCounters(
+		&$levelCounter,
+		&$levelEntranceCounter,
+		&$contextCounter,
+		&$maxContextCounter,
+		&$touchCounter,
+		&$alignType,
+		&$printedPlaceholder
+	) {
+		++$levelCounter;
 		if (!isset($levelEntranceCounter[$levelCounter])) {
 			$levelEntranceCounter[$levelCounter] = 0;
 		}
 		++$levelEntranceCounter[$levelCounter];
-
 		if (!isset($contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]])) {
 			$contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = 0;
 			$maxContextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = 0;
@@ -182,75 +210,70 @@ final class ReindentObjOps extends FormatterPass {
 		++$contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]];
 		$maxContextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]] = max($maxContextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]], $contextCounter[$levelCounter][$levelEntranceCounter[$levelCounter]]);
 	}
+
 	protected function indentParenthesesContent() {
 		$count = 0;
 		$sizeofTokens = sizeof($this->tkns);
 		for ($i = $this->ptr; $i < $sizeofTokens; ++$i) {
 			$token = &$this->tkns[$i];
 			list($id, $text) = $this->getToken($token);
-
-			if ((T_WHITESPACE == $id || T_DOC_COMMENT == $id || T_COMMENT == $id) && $this->hasLn($text)) {
+			if (
+				(T_WHITESPACE == $id || T_DOC_COMMENT == $id || T_COMMENT == $id)
+				&& $this->hasLn($text)
+			) {
 				$token[1] = $text . $this->getIndent(+1);
 				continue;
 			}
-
 			if (ST_PARENTHESES_OPEN == $id) {
 				++$count;
 			}
-
 			if (ST_PARENTHESES_CLOSE == $id) {
 				--$count;
 			}
-
 			if (0 == $count) {
 				break;
 			}
 		}
 	}
+
 	protected function injectPlaceholderParenthesesContent($placeholder) {
 		$count = 0;
 		$sizeofTokens = sizeof($this->tkns);
 		for ($i = $this->ptr; $i < $sizeofTokens; ++$i) {
 			$token = &$this->tkns[$i];
 			list($id, $text) = $this->getToken($token);
-
-			if ((T_WHITESPACE == $id || T_DOC_COMMENT == $id || T_COMMENT == $id) && $this->hasLn($text)) {
+			if ((T_WHITESPACE == $id || T_DOC_COMMENT == $id || T_COMMENT == $id)
+				&& $this->hasLn($text)) {
 				$token[1] = str_replace($this->newLine, $this->newLine . $placeholder, $text);
 				continue;
 			}
-
 			if (ST_PARENTHESES_OPEN == $id) {
 				++$count;
 			}
-
 			if (ST_PARENTHESES_CLOSE == $id) {
 				--$count;
 			}
-
 			if (0 == $count) {
 				break;
 			}
 		}
 	}
+
 	private function hasLnInBlock($tkns, $ptr, $start, $end) {
 		$sizeOfTkns = sizeof($tkns);
 		$count = 0;
 		for ($i = $ptr; $i < $sizeOfTkns; ++$i) {
 			$token = $tkns[$i];
 			list($id, $text) = $this->getToken($token);
-
 			if ($start == $id) {
 				++$count;
 			}
-
 			if ($end == $id) {
 				--$count;
 			}
-
 			if (0 == $count) {
 				break;
 			}
-
 			if ($this->hasLn($text)) {
 				return true;
 			}
