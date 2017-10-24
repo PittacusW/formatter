@@ -1,9 +1,12 @@
 <?php
-
 namespace Contal;
+
+
 class Formatter {
+
 	
 	public static function format($file) {
+		
 		try {
 			$b = new Beautifier;
 			$b->setIndentChar("\t");
@@ -17,8 +20,9 @@ class Formatter {
 			$b->setOutputFile($file);
 			$b->process();
 			return $b->get();
-		} catch(Error $e) {
-			
+		}
+		catch(Error $e) {
+
 		}
 	}
 }
