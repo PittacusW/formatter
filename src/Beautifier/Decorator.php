@@ -1,4 +1,5 @@
 <?php
+namespace Contal\Beautifier;
 /**
 * Pattern: Decorator
 *

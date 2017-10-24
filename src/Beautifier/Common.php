@@ -1,4 +1,5 @@
 <?php
+namespace Contal\Beautifier;
 /* vim: set expandtab tabstop=4 shiftwidth=4 softtabstop=4: */
 /**
 * Common and Interface
@@ -78,9 +79,6 @@ class Common {
             } elseif (preg_match("/".$sFilePattern."$/", $entry)) {
                 $matches[] = $sDir."/".$entry;
             }
-        }
-        if (!$matches) {
-            Common::getLog()->log("$sDir/$sFilePattern pattern don't match any file", PEAR_LOG_DEBUG);
         }
         return $matches;
     }
@@ -181,10 +179,6 @@ class Common {
     * Always return the same object (Singleton pattern)
     * @return Log_composite
     */
-    public static function getLog() 
-    {
-        return Log::singleton('composite', 'PHP_Beautifier');
-    }
     /**
     * Transform whitespaces into its representation
     * So, tabs becomes \t, newline \n and feed \r

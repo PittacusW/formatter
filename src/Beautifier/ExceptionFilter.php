@@ -1,8 +1,8 @@
 <?php
 namespace Contal\Beautifier;
 /**
- * Interface for Tokenizer
- *
+ * Exception.php
+ * Definition for Exceptions
  * PHP version 5
  *
  * LICENSE: This source file is subject to version 3.0 of the PHP license
@@ -12,7 +12,6 @@ namespace Contal\Beautifier;
  * send a note to license@php.net so we can mail you a copy immediately.
  * @category   PHP
  * @package PHP_Beautifier
- * @subpackage Tokenizer
  * @author Claudio Bustos <cdx@users.sourceforge.com>
  * @copyright  2004-2010 Claudio Bustos
  * @link     http://pear.php.net/package/PHP_Beautifier
@@ -21,23 +20,17 @@ namespace Contal\Beautifier;
  * @version    CVS: $Id:$
  */
 /**
- * Interface for Tokenizer
+ * Exception for Filters
  *
- * In the constructor, you should send the text of the file / code
- * The function getTokens() should send the tokens for the code, like
- * token_get_all()
- *
- * @category   PHP
- * @package PHP_Beautifier
- * @author Claudio Bustos <cdx@users.sourceforge.com>
- * @copyright  2004-2010 Claudio Bustos
- * @link     http://pear.php.net/package/PHP_Beautifier
- * @link     http://beautifyphp.sourceforge.net
- * @license    http://www.php.net/license/3_0.txt  PHP License 3.0
- * @version    Release: 0.1.15
+ * @category     PHP
+ * @package      PHP_Beautifier
+ * @author       Claudio Bustos <cdx@users.sourceforge.com>
+ * @copyright    2004-2006 Claudio Bustos
+ * @link         http://pear.php.net/package/PHP_Beautifier
+ * @link         http://beautifyphp.sourceforge.net
+ * @license      http://www.php.net/license/3_0.txt  PHP License 3.0
+ * @version      Release: 0.1.15
  */
-interface Tokenizer_Interface {
-    public function __construct($sText);
-    public function getTokens();
+class ExceptionFilter extends \Exception
+{
 }
-

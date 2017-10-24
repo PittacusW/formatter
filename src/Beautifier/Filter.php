@@ -1,4 +1,6 @@
 <?php
+namespace Contal\Beautifier;
+use Contal\Beautifier;
 /**
  * Definition of class Filter
  *
@@ -63,7 +65,7 @@ abstract class Filter
      * Description of the Filter
      * @var string
      */
-    protected $sDescription = 'Filter for PHP_Beautifier';
+    protected $sDescription = 'Filter for Beautifier';
     /**
      * If a method for parse Tokens of a Filter returns this, the control of the process
      * is handle by the next Filter
@@ -89,7 +91,7 @@ abstract class Filter
      * @param PHP_Beautifier
      * @param array settings for the Filter
      */
-    public function __construct(PHP_Beautifier $oBeaut, $aSettings = array())
+    public function __construct(Beautifier $oBeaut, $aSettings = array())
     {
         $this->oBeaut = $oBeaut;
         if ($aSettings) {
@@ -196,7 +198,6 @@ abstract class Filter
             return ($this->$sMethod($sValue) !== Filter::BYPASS);
         } else { // WEIRD!!! -> Add the same received
             $this->oBeaut->add($token[1]);
-            Common::getLog()->log("Add same received:" . trim($token[1]) , PEAR_LOG_DEBUG);
             return true;
         }
         // never go here

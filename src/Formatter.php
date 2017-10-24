@@ -1,6 +1,6 @@
 <?php
 
-
+namespace Contal;
 class Formatter {
 	
 	public static function format($file) {
@@ -8,16 +8,17 @@ class Formatter {
 			$b = new Beautifier;
 			$b->setIndentChar("\t");
 			$b->setIndentNumber(1);
-			$b->EqualsAlign();
-			$b->Default();
-			$b->IndentStyles(['style' => 'K&R']);
-			$b->ArrayNested();
+			$b->addFilter('Default');
+			$b->addFilter('EqualsAlign');
+			$b->addFilter('IndentStyles', ['style' => 'K&R']);
+			$b->addFilter('NewLines', ['before' => ['T_CLASS', 'T_FOREACH', 'T_SWITCH', 'T_TRY', 'T_IF', 'T_PRIVATE', 'T_PUBLIC', 'T_PROTECTED', 'T_ELSEIF'], 'after' => ['T_ELSE', 'T_NAMESPACE', 'T_CLASS', 'T_CATCH']]);
+			$b->addFilter('ArrayNested');
 			$b->setInputString($file);
 			$b->setOutputFile($file);
 			$b->process();
-			return Fmt::run(['smart_linebreak_after_curly' => true, 'visibility_order' => true, 'yoda' => true, 'enable_auto_align' => true, "psr2" => true], $b->get());
+			return $b->get();
 		} catch(Error $e) {
-			echo $e->getMessage();
+			
 		}
 	}
 }
